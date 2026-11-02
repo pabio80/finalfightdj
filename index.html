@@ -8,23 +8,7 @@
     * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
     body, html { width: 100%; height: 100%; overflow: hidden; background: #12121a; font-family: 'Courier New', monospace; color: #fff; }
     #game-container { position: relative; width: 100vw; height: 100vh; display: flex; justify-content: center; align-items: center; background: #1a1a24; }
-    canvas { display: block; width: 100%; height: 100%; object-fit: contain; background: #1a1a28; }
-    
-    .screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; background: rgba(20,20,35,0.96); z-index: 100; text-align: center; padding: 20px; }
-    
-    h1 { font-size: 2.8rem; text-transform: uppercase; letter-spacing: 4px; color: #00ffcc; text-shadow: 0 0 15px #00ffcc, 3px 3px 0px #ff0055; margin-bottom: 10px; }
-    h2 { font-size: 1.4rem; color: #ff0055; text-shadow: 0 0 10px #ff0055; margin-bottom: 20px; }
-    p { font-size: 0.95rem; color: #ddd; max-width: 600px; margin-bottom: 20px; line-height: 1.4; }
-    
-    .char-select { display: flex; gap: 15px; margin-bottom: 25px; flex-wrap: wrap; justify-content: center; }
-    .char-card { background: #222236; border: 3px solid #444; border-radius: 8px; padding: 12px; width: 190px; cursor: pointer; transition: all 0.2s ease; }
-    .char-card:hover, .char-card.selected { border-color: #00ffcc; transform: translateY(-4px); box-shadow: 0 0 15px rgba(0,255,204,0.5); }
-    .char-card h3 { color: #fff; margin-bottom: 5px; font-size: 1.2rem; }
-    .char-card .sub { color: #ff0055; font-size: 0.8rem; margin-bottom: 8px; display: block; }
-    .char-card .stats { font-size: 0.75rem; text-align: left; color: #eee; line-height: 1.4; }
-    
-    .btn { background: #ff0055; color: #fff; border: none; padding: 14px 35px; font-size: 1.3rem; font-weight: bold; font-family: inherit; text-transform: uppercase; cursor: pointer; border-radius: 4px; box-shadow: 0 0 12px #ff0055; transition: 0.2s; z-index: 101; pointer-events: auto; }
-    .btn:hover { background: #00ffcc; color: #000; box-shadow: 0 0 18px #00ffcc; }
+    canvas { display: block; width: 100%; height: 100%; object-fit: contain; background: #1a1a28; cursor: pointer; }
     
     #touch-controls { position: absolute; bottom: 10px; left: 0; width: 100%; height: 160px; pointer-events: none; z-index: 50; display: none; }
     .touch-btn { position: absolute; background: rgba(255,255,255,0.25); border: 2px solid rgba(255,255,255,0.5); border-radius: 50%; pointer-events: auto; display: flex; justify-content: center; align-items: center; font-weight: bold; color: #fff; font-size: 1.2rem; -webkit-tap-highlight-color: transparent; }
@@ -46,59 +30,6 @@
 
   <div id="game-container">
     <canvas id="gameCanvas" width="800" height="450"></canvas>
-    
-    <!-- Title Screen -->
-    <div id="title-screen" class="screen">
-      <h1>DJ LEGENDS</h1>
-      <h2>TECHNO VS EDM (HD)</h2>
-      <p>Selecciona tu leyenda Techno, rompe los cofres de vuelo y derroca a Steve Aoki en la discoteca.</p>
-      
-      <div class="char-select">
-        <div class="char-card selected" id="card-ricardo">
-          <h3>RICARDO</h3>
-          <span class="sub">Minimal Master</span>
-          <div class="stats">
-            • Pelo largo negro<br>
-            • Salud: 180 HP<br>
-            • Especial: Minimal Loop
-          </div>
-        </div>
-        <div class="char-card" id="card-richie">
-          <h3>RICHIE</h3>
-          <span class="sub">Plastik Precision</span>
-          <div class="stats">
-            • Rubia cabellera / Tupé<br>
-            • Salud: 150 HP<br>
-            • Especial: Sub-Bass Wave
-          </div>
-        </div>
-        <div class="char-card" id="card-derrick">
-          <h3>DERRICK</h3>
-          <span class="sub">Detroit Innovator</span>
-          <div class="stats">
-            • Pionero negro / Visor<br>
-            • Salud: 220 HP<br>
-            • Especial: Hi-Tech Shift
-          </div>
-        </div>
-      </div>
-      
-      <button class="btn" id="start-btn">ENTRAR AL CLUB</button>
-    </div>
-    
-    <!-- Game Over Screen -->
-    <div id="gameover-screen" class="screen" style="display:none;">
-      <h1 style="color:#ff0055;">GAME OVER</h1>
-      <p>El EDM comercial conquistó la pista de baile...</p>
-      <button class="btn" id="restart-btn-over">REINTENTAR</button>
-    </div>
-
-    <!-- Victory Screen -->
-    <div id="victory-screen" class="screen" style="display:none;">
-      <h1 style="color:#00ffcc;">VICTORIA UNDERGROUND</h1>
-      <p>¡Has derrotado a Steve Aoki y sus tartas! El Techno reina de nuevo.</p>
-      <button class="btn" id="restart-btn-win">JUGAR DE NUEVO</button>
-    </div>
     
     <!-- Touch Controls -->
     <div id="touch-controls">
@@ -192,7 +123,7 @@
     var canvas = document.getElementById('gameCanvas');
     var ctx = canvas ? canvas.getContext('2d') : null;
     var selectedCharKey = 'ricardo';
-    var gameState = 'TITLE';
+    var gameState = 'TITLE'; // TITLE, PLAYING, GAMEOVER, VICTORY
     var cameraX = 0;
     var stageWidth = 2600;
     var keys = {};
@@ -219,25 +150,10 @@
     setupTouch('btn-kick', 'KeyK');
     setupTouch('btn-special', 'KeyL');
 
-    function bindCharCard(id, key) {
-      var el = document.getElementById(id);
-      if (el) {
-        el.addEventListener('click', function() {
-          selectedCharKey = key;
-          var cards = document.querySelectorAll('.char-card');
-          for (var i=0; i<cards.length; i++) cards[i].classList.remove('selected');
-          this.classList.add('selected');
-        });
-      }
-    }
-    bindCharCard('card-ricardo', 'ricardo');
-    bindCharCard('card-richie', 'richie');
-    bindCharCard('card-derrick', 'derrick');
-
     var CHAR_DATA = {
-      ricardo: { name: 'Ricardo', hp: 180, speed: 3.6, power: 14 },
-      richie:  { name: 'Richie',  hp: 150, speed: 4.4, power: 12 },
-      derrick: { name: 'Derrick', hp: 220, speed: 3.0, power: 18 }
+      ricardo: { name: 'Ricardo', hp: 180, speed: 3.6, power: 14, desc: 'Pelo largo negro (180 HP)' },
+      richie:  { name: 'Richie',  hp: 150, speed: 4.4, power: 12, desc: 'Rubio / Tupé (150 HP)' },
+      derrick: { name: 'Derrick', hp: 220, speed: 3.0, power: 18, desc: 'Detroit Visor (220 HP)' }
     };
 
     var player = null;
@@ -302,8 +218,7 @@
         ctx.fillStyle = '#ff0055'; ctx.fillRect(-4, -54, 8, 12);
         ctx.fillStyle = '#333352'; ctx.fillRect(-11, -20, 10, 20); ctx.fillRect(1, -20, 10, 20);
         ctx.fillStyle = '#e5b887'; ctx.fillRect(-9, -76, 18, 19);
-        ctx.fillStyle = '#0d0d0d';
-        ctx.fillRect(-13, -80, 26, 14);
+        ctx.fillStyle = '#0d0d0d'; ctx.fillRect(-13, -80, 26, 14);
         ctx.fillRect(-15, -72, 8, 32); ctx.fillRect(7, -72, 8, 32);
         if (this.state === 'punch') { ctx.fillStyle = '#e5b887'; ctx.fillRect(12, -50, 24, 9); }
         else if (this.state === 'kick') { ctx.fillStyle = '#333352'; ctx.fillRect(10, -32, 28, 12); }
@@ -313,8 +228,7 @@
         ctx.fillStyle = '#111'; ctx.fillRect(-10, -20, 9, 20); ctx.fillRect(1, -20, 9, 20);
         ctx.fillStyle = '#f2c49b'; ctx.fillRect(-8, -74, 16, 17);
         ctx.fillStyle = '#050505'; ctx.fillRect(-7, -70, 14, 5);
-        ctx.fillStyle = '#f4d03f';
-        ctx.fillRect(-9, -82, 18, 10); ctx.fillRect(2, -88, 10, 8);
+        ctx.fillStyle = '#f4d03f'; ctx.fillRect(-9, -82, 18, 10); ctx.fillRect(2, -88, 10, 8);
         if (this.state === 'punch') { ctx.fillStyle = '#f2c49b'; ctx.fillRect(10, -50, 26, 8); }
         else if (this.state === 'kick') { ctx.fillStyle = '#111'; ctx.fillRect(8, -30, 30, 10); }
         else if (this.state === 'special') { ctx.strokeStyle = '#ff0055'; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(0, -35, 55, 0, Math.PI*2); ctx.stroke(); }
@@ -385,8 +299,7 @@
         ctx.scale(1.3, 1.3);
         ctx.fillStyle = '#d90429'; ctx.fillRect(-14, -58, 28, 40);
         ctx.fillStyle = '#e5b887'; ctx.fillRect(-9, -76, 18, 19);
-        ctx.fillStyle = '#111';
-        ctx.fillRect(-15, -81, 30, 10);
+        ctx.fillStyle = '#111'; ctx.fillRect(-15, -81, 30, 10);
         ctx.fillRect(-16, -72, 7, 36); ctx.fillRect(9, -72, 7, 36);
         ctx.fillRect(-7, -62, 14, 6);
       }
@@ -499,25 +412,42 @@
       projectiles = [];
       pickups = [];
       cameraX = 0;
-
-      var titleEl = document.getElementById('title-screen');
-      var overEl = document.getElementById('gameover-screen');
-      var winEl = document.getElementById('victory-screen');
-
-      if (titleEl) titleEl.style.display = 'none';
-      if (overEl) overEl.style.display = 'none';
-      if (winEl) winEl.style.display = 'none';
-
       gameState = 'PLAYING';
     }
 
-    var startBtn = document.getElementById('start-btn');
-    var restartOver = document.getElementById('restart-btn-over');
-    var restartWin = document.getElementById('restart-btn-win');
+    // GESTIÓN DE CLICS DIRECTOS SOBRE EL CANVAS (Menú interactivo dibujado)
+    canvas.addEventListener('click', function(e) {
+      initAudio();
+      var rect = canvas.getBoundingClientRect();
+      var scaleX = canvas.width / rect.width;
+      var scaleY = canvas.height / rect.height;
+      var mouseX = (e.clientX - rect.left) * scaleX;
+      var mouseY = (e.clientY - rect.top) * scaleY;
 
-    if (startBtn) startBtn.addEventListener('click', startActualGame);
-    if (restartOver) restartOver.addEventListener('click', startActualGame);
-    if (restartWin) restartWin.addEventListener('click', startActualGame);
+      if (gameState === 'TITLE') {
+        // Tarjeta Ricardo (X: 140 a 300, Y: 180 a 320)
+        if (mouseX >= 140 && mouseX <= 300 && mouseY >= 180 && mouseY <= 320) {
+          selectedCharKey = 'ricardo';
+        }
+        // Tarjeta Richie (X: 320 a 480, Y: 180 a 320)
+        else if (mouseX >= 320 && mouseX <= 480 && mouseY >= 180 && mouseY <= 320) {
+          selectedCharKey = 'richie';
+        }
+        // Tarjeta Derrick (X: 500 a 660, Y: 180 a 320)
+        else if (mouseX >= 500 && mouseX <= 660 && mouseY >= 180 && mouseY <= 320) {
+          selectedCharKey = 'derrick';
+        }
+        // Botón Entrar al Club (X: 280 a 520, Y: 350 a 410)
+        else if (mouseX >= 280 && mouseX <= 520 && mouseY >= 350 && mouseY <= 410) {
+          startActualGame();
+        }
+      } else if (gameState === 'GAMEOVER' || gameState === 'VICTORY') {
+        // Botón Reiniciar (X: 280 a 520, Y: 330 a 390)
+        if (mouseX >= 280 && mouseX <= 520 && mouseY >= 330 && mouseY <= 390) {
+          startActualGame();
+        }
+      }
+    });
 
     function update() {
       if (gameState !== 'PLAYING') return;
@@ -548,8 +478,6 @@
       if (player.hp <= 0) {
         gameState = 'GAMEOVER';
         stopMusic();
-        var overEl = document.getElementById('gameover-screen');
-        if (overEl) overEl.style.display = 'flex';
       }
 
       var boss = null;
@@ -559,8 +487,6 @@
       if (boss && boss.hp <= 0) {
         gameState = 'VICTORY';
         stopMusic();
-        var winEl = document.getElementById('victory-screen');
-        if (winEl) winEl.style.display = 'flex';
       }
     }
 
@@ -603,12 +529,97 @@
       ctx.fillText(player.name.toUpperCase() + ' HP: ' + Math.max(0, Math.ceil(player.hp)) + ' / ' + player.maxHp, 25, 38);
     }
 
+    function drawTitleScreen() {
+      ctx.fillStyle = 'rgba(10, 10, 18, 0.92)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#00ffcc';
+      ctx.font = 'bold 36px Courier New';
+      ctx.fillText('DJ LEGENDS: TECHNO VS EDM', canvas.width / 2, 60);
+
+      ctx.fillStyle = '#ff0055';
+      ctx.font = 'bold 16px Courier New';
+      ctx.fillText('Selecciona tu DJ haciendo clic y pulsa Entrar al Club', canvas.width / 2, 95);
+
+      var keysArr = ['ricardo', 'richie', 'derrick'];
+      var startX = 140;
+
+      for (var i = 0; i < keysArr.length; i++) {
+        var k = keysArr[i];
+        var data = CHAR_DATA[k];
+        var x = startX + (i * 180);
+        var y = 180;
+
+        // Tarjeta
+        ctx.fillStyle = (selectedCharKey === k) ? '#1e293b' : '#121220';
+        ctx.strokeStyle = (selectedCharKey === k) ? '#00ffcc' : '#444';
+        ctx.lineWidth = (selectedCharKey === k) ? 4 : 2;
+        ctx.fillRect(x, y, 160, 140);
+        ctx.strokeRect(x, y, 160, 140);
+
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 16px Courier New';
+        ctx.fillText(data.name.toUpperCase(), x + 80, y + 30);
+
+        ctx.fillStyle = '#ff0055';
+        ctx.font = '12px Courier New';
+        ctx.fillText(data.desc, x + 80, y + 60);
+      }
+
+      // Botón Entrar al Club
+      ctx.fillStyle = '#ff0055';
+      ctx.fillRect(280, 350, 240, 60);
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 18px Courier New';
+      ctx.fillText('ENTRAR AL CLUB', canvas.width / 2, 386);
+    }
+
+    function drawGameOverScreen() {
+      ctx.fillStyle = 'rgba(10, 10, 18, 0.95)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#ff0055';
+      ctx.font = 'bold 40px Courier New';
+      ctx.fillText('GAME OVER', canvas.width / 2, 160);
+
+      ctx.fillStyle = '#fff';
+      ctx.font = '16px Courier New';
+      ctx.fillText('El EDM comercial conquistó el club...', canvas.width / 2, 220);
+
+      ctx.fillStyle = '#00ffcc';
+      ctx.fillRect(280, 330, 240, 60);
+      ctx.fillStyle = '#000';
+      ctx.font = 'bold 18px Courier New';
+      ctx.fillText('REINTENTAR', canvas.width / 2, 366);
+    }
+
+    function drawVictoryScreen() {
+      ctx.fillStyle = 'rgba(10, 10, 18, 0.95)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#00ffcc';
+      ctx.font = 'bold 40px Courier New';
+      ctx.fillText('VICTORIA UNDERGROUND', canvas.width / 2, 160);
+
+      ctx.fillStyle = '#fff';
+      ctx.font = '16px Courier New';
+      ctx.fillText('¡Has derrotado a Steve Aoki y sus tartas!', canvas.width / 2, 220);
+
+      ctx.fillStyle = '#ff0055';
+      ctx.fillRect(280, 330, 240, 60);
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 18px Courier New';
+      ctx.fillText('JUGAR DE NUEVO', canvas.width / 2, 366);
+    }
+
     function render() {
       if (ctx && canvas) {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         
         if (gameState === 'TITLE') {
           drawStageBackground();
+          drawTitleScreen();
         } else if (gameState === 'PLAYING') {
           update();
           drawStageBackground();
@@ -620,6 +631,10 @@
           projectiles.forEach(function(p) { p.draw(); });
 
           drawHUD();
+        } else if (gameState === 'GAMEOVER') {
+          drawGameOverScreen();
+        } else if (gameState === 'VICTORY') {
+          drawVictoryScreen();
         }
       }
       requestAnimationFrame(render);
