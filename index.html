@@ -125,16 +125,16 @@
         if (bgmInterval) { clearInterval(bgmInterval); bgmInterval = null; }
       }
 
-      var gameState = 'TITLE'; // TITLE, SELECT, PLAYING, GAMEOVER, VICTORY
+      var gameState = 'TITLE'; 
       var cameraX = 0;
       var stageWidth = 2600;
       var keys = {};
 
       var selectedIndex = 0;
       var roster = [
-        { name: 'Ricardo Villalobos', color: '#2b2b48', accent: '#00ffcc', desc: 'Minimal Groove Master' },
-        { name: 'Derrick May', color: '#1b3a4b', accent: '#ff0055', desc: 'Detroit Techno Pioneer' },
-        { name: 'Richie Hawtin', color: '#212529', accent: '#ffcc00', desc: 'Plastikman Acid Overlord' }
+        { name: 'Ricardo Villalobos', color: '#2b2b48', accent: '#00ffcc', desc: 'Minimal Groove' },
+        { name: 'Derrick May', color: '#1b3a4b', accent: '#ff0055', desc: 'Detroit Techno' },
+        { name: 'Richie Hawtin', color: '#212529', accent: '#ffcc00', desc: 'Acid Overlord' }
       ];
 
       window.addEventListener('keydown', function(e) {
@@ -190,6 +190,7 @@
         this.speed = 3.8; this.power = 25;
         this.facing = 1; this.state = 'idle';
         this.animTimer = 0; this.attackBox = null;
+        this.hasHit = false; // Control para hacer daño una sola vez por golpe
         this.invulnerableTimer = 0;
       }
 
@@ -203,7 +204,7 @@
         }
         if (this.state === 'punch' || this.state === 'kick' || this.state === 'special') {
           this.animTimer++;
-          if (this.animTimer > 16) { this.state = 'idle'; this.animTimer = 0; this.attackBox = null; }
+          if (this.animTimer > 16) { this.state = 'idle'; this.animTimer = 0; this.attackBox = null; this.hasHit = false; }
           return;
         }
 
@@ -220,13 +221,13 @@
         else if (this.x - cameraX < 150 && cameraX > 0) { cameraX = this.x - 150; }
 
         if (keys['KeyJ']) {
-          this.state = 'punch'; this.animTimer = 0; playSound('hit');
+          this.state = 'punch'; this.animTimer = 0; this.hasHit = false; playSound('hit');
           this.attackBox = { x: this.x + (this.facing * 50), y: this.y - 45, w: 65, h: 45, dmg: this.power };
         } else if (keys['KeyK']) {
-          this.state = 'kick'; this.animTimer = 0; playSound('hit');
+          this.state = 'kick'; this.animTimer = 0; this.hasHit = false; playSound('hit');
           this.attackBox = { x: this.x + (this.facing * 60), y: this.y - 35, w: 75, h: 45, dmg: this.power * 1.5 };
         } else if (keys['KeyL']) {
-          this.state = 'special'; this.animTimer = 0; playSound('special');
+          this.state = 'special'; this.animTimer = 0; this.hasHit = false; playSound('special');
           this.attackBox = { x: this.x - 100, y: this.y - 70, w: 200, h: 100, dmg: this.power * 3 };
         }
       };
@@ -269,7 +270,7 @@
         this.facing = -1; this.timer = 0; this.knockback = 0;
         if (type === 'grunt') { this.hp = 25; this.maxHp = 25; this.speed = 1.4; this.power = 3; }
         else if (type === 'guetta') { this.hp = 40; this.maxHp = 40; this.speed = 1.2; this.power = 4; }
-        else if (type === 'boss') { this.hp = 200; this.maxHp = 200; this.speed = 1.6; this.power = 8; }
+        else if (type === 'boss') { this.hp = 250; this.maxHp = 250; this.speed = 1.6; this.power = 8; }
       }
 
       Enemy.prototype.update = function() {
@@ -445,33 +446,37 @@
         gameState = 'PLAYING';
       }
 
-      canvas.addEventListener('click', function(e) {
+      // Sistema de clic ultrarrústico y seguro por tercios de pantalla para selección
+      function handleScreenClick(clientX, clientWidth) {
         initAudio();
         if (gameState === 'TITLE') {
           gameState = 'SELECT';
         } else if (gameState === 'SELECT') {
-          // Detectar clics en los botones de selección según la posición X del canvas
-          var rect = canvas.getBoundingClientRect();
-          var clickX = (e.clientX - rect.left) * (canvas.width / rect.width);
-          if (clickX < 300) selectedIndex = 0;
-          else if (clickX > 500) selectedIndex = 2;
-          else selectedIndex = 1;
-
-          startActualGame(roster[selectedIndex]);
+          var third = clientWidth / 3;
+          if (clientX < third) {
+            selectedIndex = (selectedIndex - 1 + roster.length) % roster.length;
+            playSound('pickup');
+          } else if (clientX > third * 2) {
+            selectedIndex = (selectedIndex + 1) % roster.length;
+            playSound('pickup');
+          } else {
+            startActualGame(roster[selectedIndex]);
+          }
         } else if (gameState === 'GAMEOVER' || gameState === 'VICTORY') {
           gameState = 'TITLE';
         }
+      }
+
+      canvas.addEventListener('click', function(e) {
+        var rect = canvas.getBoundingClientRect();
+        handleScreenClick(e.clientX - rect.left, rect.width);
       });
 
       canvas.addEventListener('touchend', function(e) {
         e.preventDefault();
-        initAudio();
-        if (gameState === 'TITLE') {
-          gameState = 'SELECT';
-        } else if (gameState === 'SELECT') {
-          startActualGame(roster[selectedIndex]);
-        } else if (gameState === 'GAMEOVER' || gameState === 'VICTORY') {
-          gameState = 'TITLE';
+        var rect = canvas.getBoundingClientRect();
+        if (e.changedTouches.length > 0) {
+          handleScreenClick(e.changedTouches[0].clientX - rect.left, rect.width);
         }
       }, { passive: false });
 
@@ -480,12 +485,14 @@
 
         player.update();
 
-        if (player.attackBox) {
+        if (player.attackBox && !player.hasHit) {
+          var hitSomething = false;
           enemies.forEach(function(e) {
             if (e.hp > 0 && Math.abs(e.x - player.attackBox.x) < 55 && Math.abs(e.y - player.attackBox.y) < 40) {
               e.hp -= player.attackBox.dmg;
               e.knockback = player.facing * 8;
               playSound('hit');
+              hitSomething = true;
             }
           });
 
@@ -494,8 +501,13 @@
               c.broken = true;
               playSound('hit');
               pickups.push(new PickupItem(c.x, c.y, Math.random() > 0.5 ? 'drink' : 'headphones'));
+              hitSomething = true;
             }
           });
+
+          if (hitSomething) {
+            player.hasHit = true; // El golpe solo hace daño una vez por pulsación
+          }
         }
 
         enemies.forEach(function(e) { e.update(); });
@@ -567,11 +579,11 @@
 
         ctx.fillStyle = '#ff0055';
         ctx.font = 'bold 18px Courier New';
-        ctx.fillText('PRESIONA ENTER O HAZ CLIC PARA CONTINUAR', canvas.width / 2, 230);
+        ctx.fillText('HAZ CLIC EN CUALQUIER PARTE PARA EMPEZAR', canvas.width / 2, 230);
 
         ctx.fillStyle = '#888';
         ctx.font = '13px Courier New';
-        ctx.fillText('Versión Undergorund 100% Autónoma - 999 HP Inmortal', canvas.width / 2, 340);
+        ctx.fillText('Versión Underground 100% Autónoma', canvas.width / 2, 340);
       }
 
       function drawSelectScreen() {
@@ -581,14 +593,14 @@
         ctx.textAlign = 'center';
         ctx.fillStyle = '#00ffcc';
         ctx.font = 'bold 28px Courier New';
-        ctx.fillText('SELECCIONA TU LEYENDA TECHNO', canvas.width / 2, 60);
+        ctx.fillText('SELECCIONA TU LEYENDA TECHNO', canvas.width / 2, 50);
 
-        var boxWidth = 200, boxHeight = 240;
+        var boxWidth = 200, boxHeight = 220;
         var startX = (canvas.width - (roster.length * 220)) / 2;
 
         for (var i = 0; i < roster.length; i++) {
           var bx = startX + (i * 220);
-          var by = 110;
+          var by = 100;
 
           ctx.fillStyle = (i === selectedIndex) ? '#222533' : '#14141c';
           ctx.strokeStyle = (i === selectedIndex) ? '#00ffcc' : '#444';
@@ -606,12 +618,12 @@
 
           ctx.fillStyle = '#fff';
           ctx.font = '11px Courier New';
-          ctx.fillText('Modo: Inmortal (999 HP)', bx + boxWidth/2, by + 190);
+          ctx.fillText('Modo: Inmortal (999 HP)', bx + boxWidth/2, by + 170);
         }
 
         ctx.fillStyle = '#ff0055';
-        ctx.font = 'bold 15px Courier New';
-        ctx.fillText('Usa A/D o Flechas para elegir, Enter o Clic para confirmar', canvas.width / 2, 390);
+        ctx.font = 'bold 14px Courier New';
+        ctx.fillText('IZQUIERDA/DERECHA para cambiar | CENTRO para SELECCIONAR', canvas.width / 2, 375);
       }
 
       function drawGameOverScreen() {
