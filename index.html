@@ -8,16 +8,8 @@
     * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
     body, html { width: 100%; height: 100%; overflow: hidden; background: #12121a; font-family: 'Courier New', monospace; color: #fff; }
     #game-container { position: relative; width: 100vw; height: 100vh; display: flex; justify-content: center; align-items: center; background: #1a1a24; }
-    canvas { display: block; width: 100%; height: 100%; object-fit: contain; background: #1a1a28; }
+    canvas { display: block; width: 100%; height: 100%; object-fit: contain; background: #1a1a28; cursor: pointer; -webkit-tap-highlight-color: transparent; }
     
-    .screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; background: rgba(16,16,26,0.95); z-index: 100; text-align: center; padding: 20px; }
-    h1 { font-size: 2.8rem; text-transform: uppercase; letter-spacing: 3px; color: #00ffcc; text-shadow: 0 0 12px #00ffcc; margin-bottom: 10px; }
-    h2 { font-size: 1.3rem; color: #ff0055; text-shadow: 0 0 8px #ff0055; margin-bottom: 25px; }
-    p { font-size: 1rem; color: #ddd; max-width: 600px; margin-bottom: 30px; line-height: 1.5; }
-    
-    .btn { background: #ff0055; color: #fff; border: none; padding: 16px 40px; font-size: 1.4rem; font-weight: bold; font-family: inherit; text-transform: uppercase; cursor: pointer; border-radius: 6px; box-shadow: 0 0 15px #ff0055; transition: 0.2s; z-index: 101; }
-    .btn:hover { background: #00ffcc; color: #000; box-shadow: 0 0 20px #00ffcc; }
-
     #touch-controls { position: absolute; bottom: 10px; left: 0; width: 100%; height: 160px; pointer-events: none; z-index: 50; display: none; }
     .touch-btn { position: absolute; background: rgba(255,255,255,0.25); border: 2px solid rgba(255,255,255,0.5); border-radius: 50%; pointer-events: auto; display: flex; justify-content: center; align-items: center; font-weight: bold; color: #fff; font-size: 1.2rem; -webkit-tap-highlight-color: transparent; }
     .touch-btn:active { background: rgba(0,255,204,0.6); border-color: #00ffcc; color: #000; }
@@ -39,29 +31,7 @@
   <div id="game-container">
     <canvas id="gameCanvas" width="800" height="450"></canvas>
     
-    <!-- Title Screen HTML (Seguro contra blackscreen) -->
-    <div id="title-screen" class="screen">
-      <h1>DJ LEGENDS</h1>
-      <h2>TECHNO VS EDM</h2>
-      <p>Defiende el club underground con Ricardo Villalobos. Rompe cofres para curarte y derrota al EDM comercial.</p>
-      <button class="btn" id="start-btn">ENTRAR AL CLUB</button>
-    </div>
-    
-    <!-- Game Over Screen -->
-    <div id="gameover-screen" class="screen" style="display:none;">
-      <h1 style="color:#ff0055;">GAME OVER</h1>
-      <p>El EDM comercial conquistó la pista de baile...</p>
-      <button class="btn" id="restart-btn-over">REINTENTAR</button>
-    </div>
-
-    <!-- Victory Screen -->
-    <div id="victory-screen" class="screen" style="display:none;">
-      <h1 style="color:#00ffcc;">VICTORIA UNDERGROUND</h1>
-      <p>¡Has derrotado a Steve Aoki y sus tartas! El Techno reina de nuevo.</p>
-      <button class="btn" id="restart-btn-win">JUGAR DE NUEVO</button>
-    </div>
-    
-    <!-- Touch Controls -->
+    <!-- Touch Controls para Móvil -->
     <div id="touch-controls">
       <div id="dpad">
         <div class="touch-btn" id="btn-up">▲</div>
@@ -78,181 +48,359 @@
   </div>
 
   <script>
-    var audioCtx = null;
-    var bgmInterval = null;
+    window.addEventListener('load', function() {
+      var canvas = document.getElementById('gameCanvas');
+      if (!canvas) return;
+      var ctx = canvas.getContext('2d');
+      if (!ctx) return;
 
-    function initAudio() {
-      if (!audioCtx) {
-        try {
-          var AudioCtx = window.AudioContext || window.webkitAudioContext;
-          if (AudioCtx) audioCtx = new AudioCtx();
-        } catch(e){}
-      }
-      if (audioCtx && audioCtx.state === 'suspended') {
-        try { audioCtx.resume(); } catch(e){}
-      }
-    }
+      var audioCtx = null;
+      var bgmInterval = null;
 
-    function playSound(type) {
-      if (!audioCtx) return;
-      try {
-        var osc = audioCtx.createOscillator();
-        var gain = audioCtx.createGain();
-        osc.connect(gain); gain.connect(audioCtx.destination);
-        var t = audioCtx.currentTime;
-
-        if (type === 'hit') {
-          osc.type = 'sawtooth';
-          osc.frequency.setValueAtTime(150, t);
-          osc.frequency.exponentialRampToValueAtTime(30, t + 0.1);
-          gain.gain.setValueAtTime(0.3, t);
-          gain.gain.exponentialRampToValueAtTime(0.01, t + 0.1);
-          osc.start(t); osc.stop(t + 0.1);
-        } else if (type === 'special') {
-          osc.type = 'sine';
-          osc.frequency.setValueAtTime(90, t);
-          osc.frequency.exponentialRampToValueAtTime(600, t + 0.3);
-          gain.gain.setValueAtTime(0.4, t);
-          gain.gain.exponentialRampToValueAtTime(0.01, t + 0.3);
-          osc.start(t); osc.stop(t + 0.3);
-        } else if (type === 'pickup') {
-          osc.type = 'triangle';
-          osc.frequency.setValueAtTime(500, t);
-          osc.frequency.setValueAtTime(1000, t + 0.08);
-          gain.gain.setValueAtTime(0.25, t);
-          gain.gain.exponentialRampToValueAtTime(0.01, t + 0.2);
-          osc.start(t); osc.stop(t + 0.2);
+      function initAudio() {
+        if (!audioCtx) {
+          try {
+            var AudioCtx = window.AudioContext || window.webkitAudioContext;
+            if (AudioCtx) audioCtx = new AudioCtx();
+          } catch(e){}
         }
-      } catch(e){}
-    }
+        if (audioCtx && audioCtx.state === 'suspended') {
+          try { audioCtx.resume(); } catch(e){}
+        }
+      }
 
-    function startMusic() {
-      if (bgmInterval || !audioCtx) return;
-      var notes = [110, 110, 220, 110, 146.83, 110, 130.81, 110];
-      var step = 0;
-      bgmInterval = setInterval(function() {
+      function playSound(type) {
         if (!audioCtx) return;
         try {
           var osc = audioCtx.createOscillator();
           var gain = audioCtx.createGain();
-          osc.type = 'square';
-          osc.frequency.value = notes[step % notes.length];
-          gain.gain.setValueAtTime(0.03, audioCtx.currentTime);
-          gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
           osc.connect(gain); gain.connect(audioCtx.destination);
-          osc.start(audioCtx.currentTime); osc.stop(audioCtx.currentTime + 0.1);
-          step++;
+          var t = audioCtx.currentTime;
+
+          if (type === 'hit') {
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(150, t);
+            osc.frequency.exponentialRampToValueAtTime(30, t + 0.1);
+            gain.gain.setValueAtTime(0.3, t);
+            gain.gain.exponentialRampToValueAtTime(0.01, t + 0.1);
+            osc.start(t); osc.stop(t + 0.1);
+          } else if (type === 'special') {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(90, t);
+            osc.frequency.exponentialRampToValueAtTime(600, t + 0.3);
+            gain.gain.setValueAtTime(0.4, t);
+            gain.gain.exponentialRampToValueAtTime(0.01, t + 0.3);
+            osc.start(t); osc.stop(t + 0.3);
+          } else if (type === 'pickup') {
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(500, t);
+            osc.frequency.setValueAtTime(1000, t + 0.08);
+            gain.gain.setValueAtTime(0.25, t);
+            gain.gain.exponentialRampToValueAtTime(0.01, t + 0.2);
+            osc.start(t); osc.stop(t + 0.2);
+          }
         } catch(e){}
-      }, 140);
-    }
-
-    function stopMusic() {
-      if (bgmInterval) { clearInterval(bgmInterval); bgmInterval = null; }
-    }
-
-    var canvas = document.getElementById('gameCanvas');
-    var ctx = canvas ? canvas.getContext('2d') : null;
-    var gameState = 'TITLE'; // TITLE, PLAYING, GAMEOVER, VICTORY
-    var cameraX = 0;
-    var stageWidth = 2600;
-    var keys = {};
-
-    window.addEventListener('keydown', function(e) { initAudio(); keys[e.code] = true; });
-    window.addEventListener('keyup', function(e) { keys[e.code] = false; });
-
-    if (('ontouchstart' in window) || (navigator.maxTouchPoints > 0)) {
-      var tc = document.getElementById('touch-controls');
-      if (tc) tc.style.display = 'block';
-    }
-
-    function setupTouch(id, code) {
-      var el = document.getElementById(id);
-      if (!el) return;
-      el.addEventListener('touchstart', function(e) { e.preventDefault(); initAudio(); keys[code] = true; });
-      el.addEventListener('touchend', function(e) { e.preventDefault(); keys[code] = false; });
-    }
-    setupTouch('btn-up', 'KeyW');
-    setupTouch('btn-down', 'KeyS');
-    setupTouch('btn-left', 'KeyA');
-    setupTouch('btn-right', 'KeyD');
-    setupTouch('btn-punch', 'KeyJ');
-    setupTouch('btn-kick', 'KeyK');
-    setupTouch('btn-special', 'KeyL');
-
-    var player = null;
-    function Player() {
-      this.name = 'Ricardo Villalobos';
-      this.x = 100; this.y = 340;
-      this.hp = 999; this.maxHp = 999;
-      this.speed = 3.8; this.power = 25;
-      this.facing = 1; this.state = 'idle';
-      this.animTimer = 0; this.attackBox = null;
-      this.invulnerableTimer = 0;
-    }
-
-    Player.prototype.update = function() {
-      if (this.invulnerableTimer > 0) this.invulnerableTimer--;
-
-      if (this.state === 'hurt') {
-        this.animTimer++;
-        if (this.animTimer > 8) { this.state = 'idle'; this.animTimer = 0; }
-        return;
-      }
-      if (this.state === 'punch' || this.state === 'kick' || this.state === 'special') {
-        this.animTimer++;
-        if (this.animTimer > 10) { this.state = 'idle'; this.animTimer = 0; this.attackBox = null; }
-        return;
       }
 
-      var dx = 0, dy = 0;
-      if (keys['KeyA'] || keys['ArrowLeft'])  { dx -= this.speed; this.facing = -1; }
-      if (keys['KeyD'] || keys['ArrowRight']) { dx += this.speed; this.facing = 1; }
-      if (keys['KeyW'] || keys['ArrowUp'])    { dy -= this.speed * 0.6; }
-      if (keys['KeyS'] || keys['ArrowDown'])  { dy += this.speed * 0.6; }
-
-      this.x = Math.max(30, Math.min(stageWidth - 30, this.x + dx));
-      this.y = Math.max(290, Math.min(420, this.y + dy));
-
-      if (this.x - cameraX > 500 && cameraX < stageWidth - 800) { cameraX = this.x - 500; }
-      else if (this.x - cameraX < 150 && cameraX > 0) { cameraX = this.x - 150; }
-
-      if (keys['KeyJ']) {
-        this.state = 'punch'; this.animTimer = 0; playSound('hit');
-        this.attackBox = { x: this.x + (this.facing * 45), y: this.y - 40, w: 60, h: 45, dmg: this.power };
-      } else if (keys['KeyK']) {
-        this.state = 'kick'; this.animTimer = 0; playSound('hit');
-        this.attackBox = { x: this.x + (this.facing * 55), y: this.y - 40, w: 70, h: 45, dmg: this.power * 1.5 };
-      } else if (keys['KeyL']) {
-        this.state = 'special'; this.animTimer = 0; playSound('special');
-        this.attackBox = { x: this.x - 100, y: this.y - 70, w: 200, h: 100, dmg: this.power * 3 };
+      function startMusic() {
+        if (bgmInterval || !audioCtx) return;
+        var notes = [110, 110, 220, 110, 146.83, 110, 130.81, 110];
+        var step = 0;
+        bgmInterval = setInterval(function() {
+          if (!audioCtx) return;
+          try {
+            var osc = audioCtx.createOscillator();
+            var gain = audioCtx.createGain();
+            osc.type = 'square';
+            osc.frequency.value = notes[step % notes.length];
+            gain.gain.setValueAtTime(0.03, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(audioCtx.currentTime); osc.stop(audioCtx.currentTime + 0.1);
+            step++;
+          } catch(e){}
+        }, 140);
       }
-    };
 
-    Player.prototype.draw = function() {
-      if (!ctx) return;
-      if (this.invulnerableTimer > 0 && Math.floor(this.invulnerableTimer / 3) % 2 === 0) return;
+      function stopMusic() {
+        if (bgmInterval) { clearInterval(bgmInterval); bgmInterval = null; }
+      }
 
-      ctx.save();
-      ctx.translate(this.x - cameraX, this.y);
-      ctx.fillStyle = 'rgba(0,0,0,0.45)';
-      ctx.beginPath(); ctx.ellipse(0, 0, 24, 9, 0, 0, Math.PI * 2); ctx.fill();
-      ctx.scale(this.facing, 1);
+      var gameState = 'TITLE'; // TITLE, PLAYING, GAMEOVER, VICTORY
+      var cameraX = 0;
+      var stageWidth = 2600;
+      var keys = {};
 
-      ctx.fillStyle = '#2b2b48'; ctx.fillRect(-14, -58, 28, 38);
-      ctx.fillStyle = '#ff0055'; ctx.fillRect(-4, -54, 8, 12);
-      ctx.fillStyle = '#333352'; ctx.fillRect(-11, -20, 10, 20); ctx.fillRect(1, -20, 10, 20);
-      ctx.fillStyle = '#e5b887'; ctx.fillRect(-9, -76, 18, 19);
-      ctx.fillStyle = '#0d0d0d'; ctx.fillRect(-13, -80, 26, 14);
-      ctx.fillRect(-15, -72, 8, 32); ctx.fillRect(7, -72, 8, 32);
+      window.addEventListener('keydown', function(e) { initAudio(); keys[e.code] = true; });
+      window.addEventListener('keyup', function(e) { keys[e.code] = false; });
 
-      ctx.restore();
-    };
+      var isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+      if (isTouchDevice) {
+        var tc = document.getElementById('touch-controls');
+        if (tc) tc.style.display = 'block';
+      }
 
-    var enemies = [], projectiles = [], chests = [], pickups = [];
+      function setupTouch(id, code) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        el.addEventListener('touchstart', function(e) { e.preventDefault(); initAudio(); keys[code] = true; });
+        el.addEventListener('touchend', function(e) { e.preventDefault(); keys[code] = false; });
+      }
+      setupTouch('btn-up', 'KeyW');
+      setupTouch('btn-down', 'KeyS');
+      setupTouch('btn-left', 'KeyA');
+      setupTouch('btn-right', 'KeyD');
+      setupTouch('btn-punch', 'KeyJ');
+      setupTouch('btn-kick', 'KeyK');
+      setupTouch('btn-special', 'KeyL');
 
-    function Enemy(x, y, type) {
-      this.x = x; this.y = y; this.type = type;
-      this.facing = -1; this.timer = 0; this.knockback = 0;
-      if (type === 'grunt') { this.hp = 25; this.maxHp = 25; this.speed = 1.4; this.power = 3; }
-      else if (type === 'guetta') { this.hp = 40; this.maxHp = 40; this.speed = 1.2; this.power = 4; }
-      else if (
+      var player = null;
+      function Player() {
+        this.name = 'Ricardo Villalobos';
+        this.x = 100; this.y = 340;
+        this.hp = 999; this.maxHp = 999;
+        this.speed = 3.8; this.power = 25;
+        this.facing = 1; this.state = 'idle';
+        this.animTimer = 0; this.attackBox = null;
+        this.invulnerableTimer = 0;
+      }
+
+      Player.prototype.update = function() {
+        if (this.invulnerableTimer > 0) this.invulnerableTimer--;
+
+        if (this.state === 'hurt') {
+          this.animTimer++;
+          if (this.animTimer > 8) { this.state = 'idle'; this.animTimer = 0; }
+          return;
+        }
+        if (this.state === 'punch' || this.state === 'kick' || this.state === 'special') {
+          this.animTimer++;
+          if (this.animTimer > 10) { this.state = 'idle'; this.animTimer = 0; this.attackBox = null; }
+          return;
+        }
+
+        var dx = 0, dy = 0;
+        if (keys['KeyA'] || keys['ArrowLeft'])  { dx -= this.speed; this.facing = -1; }
+        if (keys['KeyD'] || keys['ArrowRight']) { dx += this.speed; this.facing = 1; }
+        if (keys['KeyW'] || keys['ArrowUp'])    { dy -= this.speed * 0.6; }
+        if (keys['KeyS'] || keys['ArrowDown'])  { dy += this.speed * 0.6; }
+
+        this.x = Math.max(30, Math.min(stageWidth - 30, this.x + dx));
+        this.y = Math.max(290, Math.min(420, this.y + dy));
+
+        if (this.x - cameraX > 500 && cameraX < stageWidth - 800) { cameraX = this.x - 500; }
+        else if (this.x - cameraX < 150 && cameraX > 0) { cameraX = this.x - 150; }
+
+        if (keys['KeyJ']) {
+          this.state = 'punch'; this.animTimer = 0; playSound('hit');
+          this.attackBox = { x: this.x + (this.facing * 45), y: this.y - 40, w: 60, h: 45, dmg: this.power };
+        } else if (keys['KeyK']) {
+          this.state = 'kick'; this.animTimer = 0; playSound('hit');
+          this.attackBox = { x: this.x + (this.facing * 55), y: this.y - 40, w: 70, h: 45, dmg: this.power * 1.5 };
+        } else if (keys['KeyL']) {
+          this.state = 'special'; this.animTimer = 0; playSound('special');
+          this.attackBox = { x: this.x - 100, y: this.y - 70, w: 200, h: 100, dmg: this.power * 3 };
+        }
+      };
+
+      Player.prototype.draw = function() {
+        if (!ctx) return;
+        if (this.invulnerableTimer > 0 && Math.floor(this.invulnerableTimer / 3) % 2 === 0) return;
+
+        ctx.save();
+        ctx.translate(this.x - cameraX, this.y);
+        ctx.fillStyle = 'rgba(0,0,0,0.45)';
+        ctx.beginPath(); ctx.ellipse(0, 0, 24, 9, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.scale(this.facing, 1);
+
+        ctx.fillStyle = '#2b2b48'; ctx.fillRect(-14, -58, 28, 38);
+        ctx.fillStyle = '#ff0055'; ctx.fillRect(-4, -54, 8, 12);
+        ctx.fillStyle = '#333352'; ctx.fillRect(-11, -20, 10, 20); ctx.fillRect(1, -20, 10, 20);
+        ctx.fillStyle = '#e5b887'; ctx.fillRect(-9, -76, 18, 19);
+        ctx.fillStyle = '#0d0d0d'; ctx.fillRect(-13, -80, 26, 14);
+        ctx.fillRect(-15, -72, 8, 32); ctx.fillRect(7, -72, 8, 32);
+
+        ctx.restore();
+      };
+
+      var enemies = [], projectiles = [], chests = [], pickups = [];
+
+      function Enemy(x, y, type) {
+        this.x = x; this.y = y; this.type = type;
+        this.facing = -1; this.timer = 0; this.knockback = 0;
+        if (type === 'grunt') { this.hp = 25; this.maxHp = 25; this.speed = 1.4; this.power = 3; }
+        else if (type === 'guetta') { this.hp = 40; this.maxHp = 40; this.speed = 1.2; this.power = 4; }
+        else if (type === 'boss') { this.hp = 200; this.maxHp = 200; this.speed = 1.6; this.power = 8; }
+      }
+
+      Enemy.prototype.update = function() {
+        if (this.hp <= 0) return;
+        if (this.knockback !== 0) {
+          this.x += this.knockback;
+          this.knockback *= 0.8;
+          if (Math.abs(this.knockback) < 0.5) this.knockback = 0;
+          return;
+        }
+
+        var dist = Math.hypot(player.x - this.x, player.y - this.y);
+        this.facing = (player.x > this.x) ? 1 : -1;
+
+        if (dist > 60) {
+          this.x += this.facing * this.speed;
+          if (player.y > this.y) this.y += 0.4; else if (player.y < this.y) this.y -= 0.4;
+        } else {
+          this.timer++;
+          if (this.timer > (this.type === 'boss' ? 50 : 70)) {
+            this.timer = 0;
+            if (this.type === 'boss' || this.type === 'guetta') {
+              var pType = (this.type === 'boss') ? 'cake' : (Math.random() > 0.5 ? 'usb' : 'cdj');
+              projectiles.push(new Projectile(this.x, this.y - 45, this.facing, pType));
+            } else {
+              if (Math.abs(player.y - this.y) < 25 && player.invulnerableTimer === 0) {
+                player.hp -= this.power;
+                player.state = 'hurt';
+                player.invulnerableTimer = 60;
+                playSound('hit');
+              }
+            }
+          }
+        }
+      };
+
+      Enemy.prototype.draw = function() {
+        if (this.hp <= 0 || !ctx) return;
+        ctx.save();
+        ctx.translate(this.x - cameraX, this.y);
+        ctx.scale(this.facing, 1);
+        ctx.fillStyle = 'rgba(0,0,0,0.45)'; ctx.beginPath(); ctx.ellipse(0, 0, 22, 8, 0, 0, Math.PI*2); ctx.fill();
+
+        if (this.type === 'grunt') {
+          ctx.fillStyle = '#222'; ctx.fillRect(-11, -54, 22, 35);
+          ctx.fillStyle = '#fff'; ctx.fillRect(-3, -54, 6, 12);
+          ctx.fillStyle = '#f2c49b'; ctx.fillRect(-8, -70, 16, 17);
+          ctx.fillStyle = '#000'; ctx.fillRect(-7, -66, 14, 5);
+        } else if (this.type === 'guetta') {
+          ctx.fillStyle = '#2a6f97'; ctx.fillRect(-12, -55, 24, 36);
+          ctx.fillStyle = '#f8edeb'; ctx.fillRect(-8, -71, 16, 17);
+          ctx.fillStyle = '#e9c46a'; ctx.fillRect(-9, -78, 18, 8);
+        } else if (this.type === 'boss') {
+          ctx.scale(1.3, 1.3);
+          ctx.fillStyle = '#d90429'; ctx.fillRect(-14, -58, 28, 40);
+          ctx.fillStyle = '#e5b887'; ctx.fillRect(-9, -76, 18, 19);
+          ctx.fillStyle = '#111'; ctx.fillRect(-15, -81, 30, 10);
+          ctx.fillRect(-16, -72, 7, 36); ctx.fillRect(9, -72, 7, 36);
+          ctx.fillRect(-7, -62, 14, 6);
+        }
+
+        ctx.scale(this.facing, 1);
+        ctx.fillStyle = '#333'; ctx.fillRect(-24, -92, 48, 6);
+        ctx.fillStyle = this.type === 'boss' ? '#ffcc00' : '#ff0055'; 
+        ctx.fillRect(-24, -92, (this.hp / this.maxHp) * 48, 6);
+        ctx.restore();
+      };
+
+      function Projectile(x, y, dir, type) {
+        this.x = x; this.y = y; this.dir = dir; this.type = type;
+        this.speed = 4.5; this.active = true;
+      }
+
+      Projectile.prototype.update = function() {
+        this.x += this.dir * this.speed;
+        if (Math.abs(this.x - player.x) < 25 && Math.abs(this.y - (player.y - 30)) < 30 && player.invulnerableTimer === 0) {
+          player.hp -= (this.type === 'cake' ? 10 : 6);
+          player.state = 'hurt';
+          player.invulnerableTimer = 60;
+          playSound('hit');
+          this.active = false;
+        }
+        if (Math.abs(this.x - player.x) > 650) this.active = false;
+      };
+
+      Projectile.prototype.draw = function() {
+        if (!this.active || !ctx) return;
+        ctx.save();
+        ctx.translate(this.x - cameraX, this.y);
+        if (this.type === 'cake') {
+          ctx.fillStyle = '#fff'; ctx.fillRect(-14, -14, 28, 18);
+          ctx.fillStyle = '#ff0055'; ctx.fillRect(-14, -7, 28, 5);
+          ctx.fillStyle = '#ffcc00'; ctx.fillRect(-2, -20, 4, 7);
+        } else if (this.type === 'usb') {
+          ctx.fillStyle = '#00ffcc'; ctx.fillRect(-9, -5, 18, 10);
+        } else if (this.type === 'cdj') {
+          ctx.fillStyle = '#222'; ctx.fillRect(-15, -12, 30, 22);
+          ctx.fillStyle = '#00ffcc'; ctx.beginPath(); ctx.arc(0, 0, 7, 0, Math.PI*2); ctx.fill();
+        }
+        ctx.restore();
+      };
+
+      function TreasureChest(x, y) {
+        this.x = x; this.y = y; this.broken = false;
+      }
+
+      TreasureChest.prototype.draw = function() {
+        if (!ctx) return;
+        ctx.save();
+        ctx.translate(this.x - cameraX, this.y);
+        if (!this.broken) {
+          ctx.fillStyle = '#3d405b'; ctx.fillRect(-24, -32, 48, 32);
+          ctx.fillStyle = '#e0e1dd';
+          ctx.fillRect(-24, -32, 48, 5); ctx.fillRect(-24, -5, 48, 5);
+          ctx.fillRect(-24, -32, 5, 32); ctx.fillRect(19, -32, 5, 32);
+          ctx.fillStyle = '#ffcc00'; ctx.fillRect(-6, -20, 12, 9);
+        } else {
+          ctx.fillStyle = '#1d1e2c'; ctx.fillRect(-24, -16, 48, 16);
+          ctx.fillStyle = '#e0e1dd'; ctx.fillRect(-26, -26, 52, 6);
+        }
+        ctx.restore();
+      };
+
+      function PickupItem(x, y, type) {
+        this.x = x; this.y = y; this.type = type; this.active = true;
+      }
+
+      PickupItem.prototype.update = function() {
+        if (Math.hypot(player.x - this.x, player.y - this.y) < 40) {
+          player.hp = Math.min(player.maxHp, player.hp + 200);
+          playSound('pickup'); this.active = false;
+        }
+      };
+
+      PickupItem.prototype.draw = function() {
+        if (!this.active || !ctx) return;
+        ctx.save();
+        ctx.translate(this.x - cameraX, this.y - 12);
+        if (this.type === 'headphones') {
+          ctx.strokeStyle = '#00ffcc'; ctx.lineWidth = 4;
+          ctx.beginPath(); ctx.arc(0, 0, 12, Math.PI, 0); ctx.stroke();
+          ctx.fillStyle = '#111'; ctx.fillRect(-15, -2, 7, 12); ctx.fillRect(8, -2, 7, 12);
+        } else {
+          ctx.fillStyle = '#ff0055'; ctx.fillRect(-7, -12, 14, 24);
+          ctx.fillStyle = '#00ffcc'; ctx.fillRect(-7, -5, 14, 6);
+        }
+        ctx.restore();
+      };
+
+      function startActualGame() {
+        initAudio();
+        startMusic();
+
+        player = new Player();
+        enemies = [
+          new Enemy(500, 340, 'grunt'),
+          new Enemy(780, 360, 'guetta'),
+          new Enemy(1150, 330, 'grunt'),
+          new Enemy(1500, 370, 'guetta'),
+          new Enemy(1900, 350, 'grunt'),
+          new Enemy(2300, 340, 'boss')
+        ];
+
+        chests = [
+          new TreasureChest(650, 330),
+          new TreasureChest(1350, 360),
+          new TreasureChest(2050, 340)
+        ];
+
+        projectiles = [];
+        pickups = [];
+        cameraX = 0;
+        gameState
