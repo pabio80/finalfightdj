@@ -125,12 +125,39 @@
         if (bgmInterval) { clearInterval(bgmInterval); bgmInterval = null; }
       }
 
-      var gameState = 'TITLE';
+      var gameState = 'TITLE'; // TITLE, SELECT, PLAYING, GAMEOVER, VICTORY
       var cameraX = 0;
       var stageWidth = 2600;
       var keys = {};
 
-      window.addEventListener('keydown', function(e) { initAudio(); keys[e.code] = true; });
+      var selectedIndex = 0;
+      var roster = [
+        { name: 'Ricardo Villalobos', color: '#2b2b48', accent: '#00ffcc', desc: 'Minimal Groove Master' },
+        { name: 'Derrick May', color: '#1b3a4b', accent: '#ff0055', desc: 'Detroit Techno Pioneer' },
+        { name: 'Richie Hawtin', color: '#212529', accent: '#ffcc00', desc: 'Plastikman Acid Overlord' }
+      ];
+
+      window.addEventListener('keydown', function(e) {
+        initAudio();
+        keys[e.code] = true;
+
+        if (gameState === 'TITLE') {
+          if (e.code === 'Enter' || e.code === 'Space' || e.code === 'KeyJ') {
+            gameState = 'SELECT';
+          }
+        } else if (gameState === 'SELECT') {
+          if (e.code === 'ArrowLeft' || e.code === 'KeyA') {
+            selectedIndex = (selectedIndex - 1 + roster.length) % roster.length;
+            playSound('pickup');
+          } else if (e.code === 'ArrowRight' || e.code === 'KeyD') {
+            selectedIndex = (selectedIndex + 1) % roster.length;
+            playSound('pickup');
+          } else if (e.code === 'Enter' || e.code === 'Space' || e.code === 'KeyJ') {
+            startActualGame(roster[selectedIndex]);
+          }
+        }
+      });
+
       window.addEventListener('keyup', function(e) { keys[e.code] = false; });
 
       var isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
@@ -154,8 +181,10 @@
       setupTouch('btn-special', 'KeyL');
 
       var player = null;
-      function Player() {
-        this.name = 'Ricardo Villalobos';
+      function Player(data) {
+        this.name = data.name;
+        this.color = data.color;
+        this.accent = data.accent;
         this.x = 100; this.y = 340;
         this.hp = 999; this.maxHp = 999;
         this.speed = 3.8; this.power = 25;
@@ -174,7 +203,6 @@
         }
         if (this.state === 'punch' || this.state === 'kick' || this.state === 'special') {
           this.animTimer++;
-          // Aumentamos la duración visible del golpe a 16 frames para que se aprecie con claridad
           if (this.animTimer > 16) { this.state = 'idle'; this.animTimer = 0; this.attackBox = null; }
           return;
         }
@@ -213,26 +241,21 @@
         ctx.beginPath(); ctx.ellipse(0, 0, 24, 9, 0, 0, Math.PI * 2); ctx.fill();
         ctx.scale(this.facing, 1);
 
-        // Cuerpo base
-        ctx.fillStyle = '#2b2b48'; ctx.fillRect(-14, -58, 28, 38);
-        ctx.fillStyle = '#ff0055'; ctx.fillRect(-4, -54, 8, 12);
+        ctx.fillStyle = this.color; ctx.fillRect(-14, -58, 28, 38);
+        ctx.fillStyle = this.accent; ctx.fillRect(-4, -54, 8, 12);
         ctx.fillStyle = '#333352'; ctx.fillRect(-11, -20, 10, 20); ctx.fillRect(1, -20, 10, 20);
         ctx.fillStyle = '#e5b887'; ctx.fillRect(-9, -76, 18, 19);
         ctx.fillStyle = '#0d0d0d'; ctx.fillRect(-13, -80, 26, 14);
         ctx.fillRect(-15, -72, 8, 32); ctx.fillRect(7, -72, 8, 32);
 
-        // ANIMACIÓN VISUAL DE GOLPES CLARA
         if (this.state === 'punch') {
-          // Brazo estirado hacia adelante con brillo cian
-          ctx.fillStyle = '#00ffcc';
+          ctx.fillStyle = this.accent;
           ctx.fillRect(8, -48, 26, 10);
         } else if (this.state === 'kick') {
-          // Pierna extendida hacia adelante con brillo fucsia
-          ctx.fillStyle = '#ff0055';
+          ctx.fillStyle = this.accent;
           ctx.fillRect(10, -18, 30, 10);
         } else if (this.state === 'special') {
-          // Onda de energía especial alrededor
-          ctx.strokeStyle = '#ffcc00'; ctx.lineWidth = 4;
+          ctx.strokeStyle = this.accent; ctx.lineWidth = 4;
           ctx.beginPath(); ctx.arc(0, -40, 45, 0, Math.PI*2); ctx.stroke();
         }
 
@@ -396,11 +419,11 @@
         ctx.restore();
       };
 
-      function startActualGame() {
+      function startActualGame(selectedRosterData) {
         initAudio();
         startMusic();
 
-        player = new Player();
+        player = new Player(selectedRosterData);
         enemies = [
           new Enemy(500, 340, 'grunt'),
           new Enemy(780, 360, 'guetta'),
@@ -422,17 +445,34 @@
         gameState = 'PLAYING';
       }
 
-      function handleGlobalInput(e) {
+      canvas.addEventListener('click', function(e) {
         initAudio();
-        if (gameState === 'TITLE' || gameState === 'GAMEOVER' || gameState === 'VICTORY') {
-          startActualGame();
-        }
-      }
+        if (gameState === 'TITLE') {
+          gameState = 'SELECT';
+        } else if (gameState === 'SELECT') {
+          // Detectar clics en los botones de selección según la posición X del canvas
+          var rect = canvas.getBoundingClientRect();
+          var clickX = (e.clientX - rect.left) * (canvas.width / rect.width);
+          if (clickX < 300) selectedIndex = 0;
+          else if (clickX > 500) selectedIndex = 2;
+          else selectedIndex = 1;
 
-      canvas.addEventListener('click', handleGlobalInput);
+          startActualGame(roster[selectedIndex]);
+        } else if (gameState === 'GAMEOVER' || gameState === 'VICTORY') {
+          gameState = 'TITLE';
+        }
+      });
+
       canvas.addEventListener('touchend', function(e) {
         e.preventDefault();
-        handleGlobalInput(e);
+        initAudio();
+        if (gameState === 'TITLE') {
+          gameState = 'SELECT';
+        } else if (gameState === 'SELECT') {
+          startActualGame(roster[selectedIndex]);
+        } else if (gameState === 'GAMEOVER' || gameState === 'VICTORY') {
+          gameState = 'TITLE';
+        }
       }, { passive: false });
 
       function update() {
@@ -522,20 +562,56 @@
 
         ctx.textAlign = 'center';
         ctx.fillStyle = '#00ffcc';
-        ctx.font = 'bold 32px Courier New';
-        ctx.fillText('DJ LEGENDS: TECHNO VS EDM', canvas.width / 2, 100);
+        ctx.font = 'bold 36px Courier New';
+        ctx.fillText('DJ LEGENDS: TECHNO VS EDM', canvas.width / 2, 140);
 
         ctx.fillStyle = '#ff0055';
         ctx.font = 'bold 18px Courier New';
-        ctx.fillText('¡HAZ CLIC O TOCA EN CUALQUIER PARTE PARA EMPEZAR!', canvas.width / 2, 180);
+        ctx.fillText('PRESIONA ENTER O HAZ CLIC PARA CONTINUAR', canvas.width / 2, 230);
 
-        ctx.fillStyle = '#aaa';
-        ctx.font = '14px Courier New';
-        ctx.fillText('Ricardo Villalobos (Modo Inmortal / 999 HP)', canvas.width / 2, 260);
-
-        ctx.fillStyle = '#fff';
+        ctx.fillStyle = '#888';
         ctx.font = '13px Courier New';
-        ctx.fillText('Controles PC: A/D (Mover) | W/S (Arriba/Abajo) | J (Puño) | K (Patada) | L (Especial)', canvas.width / 2, 360);
+        ctx.fillText('Versión Undergorund 100% Autónoma - 999 HP Inmortal', canvas.width / 2, 340);
+      }
+
+      function drawSelectScreen() {
+        ctx.fillStyle = 'rgba(10, 10, 18, 0.95)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#00ffcc';
+        ctx.font = 'bold 28px Courier New';
+        ctx.fillText('SELECCIONA TU LEYENDA TECHNO', canvas.width / 2, 60);
+
+        var boxWidth = 200, boxHeight = 240;
+        var startX = (canvas.width - (roster.length * 220)) / 2;
+
+        for (var i = 0; i < roster.length; i++) {
+          var bx = startX + (i * 220);
+          var by = 110;
+
+          ctx.fillStyle = (i === selectedIndex) ? '#222533' : '#14141c';
+          ctx.strokeStyle = (i === selectedIndex) ? '#00ffcc' : '#444';
+          ctx.lineWidth = (i === selectedIndex) ? 4 : 2;
+          ctx.fillRect(bx, by, boxWidth, boxHeight);
+          ctx.strokeRect(bx, by, boxWidth, boxHeight);
+
+          ctx.fillStyle = roster[i].accent;
+          ctx.font = 'bold 16px Courier New';
+          ctx.fillText(roster[i].name, bx + boxWidth/2, by + 45);
+
+          ctx.fillStyle = '#aaa';
+          ctx.font = '12px Courier New';
+          ctx.fillText(roster[i].desc, bx + boxWidth/2, by + 85);
+
+          ctx.fillStyle = '#fff';
+          ctx.font = '11px Courier New';
+          ctx.fillText('Modo: Inmortal (999 HP)', bx + boxWidth/2, by + 190);
+        }
+
+        ctx.fillStyle = '#ff0055';
+        ctx.font = 'bold 15px Courier New';
+        ctx.fillText('Usa A/D o Flechas para elegir, Enter o Clic para confirmar', canvas.width / 2, 390);
       }
 
       function drawGameOverScreen() {
@@ -548,7 +624,7 @@
 
         ctx.fillStyle = '#fff';
         ctx.font = '16px Courier New';
-        ctx.fillText('Toca o haz clic para reintentar', canvas.width / 2, 260);
+        ctx.fillText('Haz clic para volver al menú principal', canvas.width / 2, 260);
       }
 
       function drawVictoryScreen() {
@@ -561,7 +637,7 @@
 
         ctx.fillStyle = '#fff';
         ctx.font = '16px Courier New';
-        ctx.fillText('¡Has derrotado a Steve Aoki! Toca o haz clic para jugar de nuevo', canvas.width / 2, 260);
+        ctx.fillText('¡Has derrotado al EDM! Haz clic para jugar de nuevo', canvas.width / 2, 260);
       }
 
       function render() {
@@ -571,6 +647,8 @@
           if (gameState === 'TITLE') {
             drawStageBackground();
             drawTitleScreen();
+          } else if (gameState === 'SELECT') {
+            drawSelectScreen();
           } else if (gameState === 'PLAYING') {
             update();
             drawStageBackground();
