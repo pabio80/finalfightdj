@@ -3,32 +3,32 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>DJ Legends: Techno vs EDM</title>
+  <title>DJ Legends: Techno vs EDM - HD Edition</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
-    body, html { width: 100%; height: 100%; overflow: hidden; background: #050508; font-family: 'Courier New', monospace; color: #fff; }
-    #game-container { position: relative; width: 100vw; height: 100vh; display: flex; justify-content: center; align-items: center; background: #000; }
-    canvas { display: block; width: 100%; height: 100%; object-fit: contain; background: #0b0b12; }
+    body, html { width: 100%; height: 100%; overflow: hidden; background: #12121a; font-family: 'Courier New', monospace; color: #fff; }
+    #game-container { position: relative; width: 100vw; height: 100vh; display: flex; justify-content: center; align-items: center; background: #1a1a24; }
+    canvas { display: block; width: 100%; height: 100%; object-fit: contain; background: #1a1a28; }
     
-    .screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; background: #080810; z-index: 100; text-align: center; padding: 20px; }
+    .screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; background: rgba(20,20,35,0.95); z-index: 100; text-align: center; padding: 20px; }
     
     h1 { font-size: 2.8rem; text-transform: uppercase; letter-spacing: 4px; color: #00ffcc; text-shadow: 0 0 15px #00ffcc, 3px 3px 0px #ff0055; margin-bottom: 10px; }
     h2 { font-size: 1.4rem; color: #ff0055; text-shadow: 0 0 10px #ff0055; margin-bottom: 20px; }
-    p { font-size: 0.95rem; color: #aaa; max-width: 600px; margin-bottom: 20px; line-height: 1.4; }
+    p { font-size: 0.95rem; color: #ddd; max-width: 600px; margin-bottom: 20px; line-height: 1.4; }
     
     .char-select { display: flex; gap: 15px; margin-bottom: 25px; flex-wrap: wrap; justify-content: center; }
-    .char-card { background: #121220; border: 3px solid #333; border-radius: 8px; padding: 12px; width: 180px; cursor: pointer; transition: all 0.2s ease; }
-    .char-card:hover, .char-card.selected { border-color: #00ffcc; transform: translateY(-4px); box-shadow: 0 0 15px rgba(0,255,204,0.4); }
-    .char-card h3 { color: #fff; margin-bottom: 5px; font-size: 1.1rem; }
-    .char-card .sub { color: #ff0055; font-size: 0.75rem; margin-bottom: 8px; display: block; }
-    .char-card .stats { font-size: 0.7rem; text-align: left; color: #ccc; line-height: 1.3; }
+    .char-card { background: #222236; border: 3px solid #444; border-radius: 8px; padding: 12px; width: 190px; cursor: pointer; transition: all 0.2s ease; }
+    .char-card:hover, .char-card.selected { border-color: #00ffcc; transform: translateY(-4px); box-shadow: 0 0 15px rgba(0,255,204,0.5); }
+    .char-card h3 { color: #fff; margin-bottom: 5px; font-size: 1.2rem; }
+    .char-card .sub { color: #ff0055; font-size: 0.8rem; margin-bottom: 8px; display: block; }
+    .char-card .stats { font-size: 0.75rem; text-align: left; color: #eee; line-height: 1.4; }
     
     .btn { background: #ff0055; color: #fff; border: none; padding: 14px 35px; font-size: 1.3rem; font-weight: bold; font-family: inherit; text-transform: uppercase; cursor: pointer; border-radius: 4px; box-shadow: 0 0 12px #ff0055; transition: 0.2s; z-index: 101; }
     .btn:hover { background: #00ffcc; color: #000; box-shadow: 0 0 18px #00ffcc; }
     
     #touch-controls { position: absolute; bottom: 10px; left: 0; width: 100%; height: 160px; pointer-events: none; z-index: 50; display: none; }
-    .touch-btn { position: absolute; background: rgba(255,255,255,0.15); border: 2px solid rgba(255,255,255,0.3); border-radius: 50%; pointer-events: auto; display: flex; justify-content: center; align-items: center; font-weight: bold; color: rgba(255,255,255,0.8); font-size: 1.2rem; -webkit-tap-highlight-color: transparent; }
-    .touch-btn:active { background: rgba(0,255,204,0.4); border-color: #00ffcc; color: #fff; }
+    .touch-btn { position: absolute; background: rgba(255,255,255,0.25); border: 2px solid rgba(255,255,255,0.5); border-radius: 50%; pointer-events: auto; display: flex; justify-content: center; align-items: center; font-weight: bold; color: #fff; font-size: 1.2rem; -webkit-tap-highlight-color: transparent; }
+    .touch-btn:active { background: rgba(0,255,204,0.6); border-color: #00ffcc; color: #000; }
     
     #dpad { position: absolute; bottom: 15px; left: 15px; width: 130px; height: 130px; }
     #btn-up { top: 0; left: 45px; width: 40px; height: 40px; }
@@ -37,9 +37,9 @@
     #btn-right { top: 45px; right: 0; width: 40px; height: 40px; }
     
     #actions { position: absolute; bottom: 20px; right: 20px; width: 160px; height: 120px; }
-    #btn-punch { bottom: 10px; right: 100px; width: 50px; height: 50px; background: rgba(0,255,204,0.2); }
-    #btn-kick { bottom: 50px; right: 50px; width: 50px; height: 50px; background: rgba(255,0,85,0.2); }
-    #btn-special { bottom: 0px; right: 0px; width: 45px; height: 45px; background: rgba(255,204,0,0.2); font-size: 0.8rem; }
+    #btn-punch { bottom: 10px; right: 100px; width: 50px; height: 50px; background: rgba(0,255,204,0.3); }
+    #btn-kick { bottom: 50px; right: 50px; width: 50px; height: 50px; background: rgba(255,0,85,0.3); }
+    #btn-special { bottom: 0px; right: 0px; width: 45px; height: 45px; background: rgba(255,204,0,0.3); font-size: 0.8rem; }
   </style>
 </head>
 <body>
@@ -50,8 +50,8 @@
     <!-- Title Screen -->
     <div id="title-screen" class="screen">
       <h1>DJ LEGENDS</h1>
-      <h2>TECHNO VS EDM</h2>
-      <p>Selecciona tu leyenda Techno y liquida a Steve Aoki en el club.</p>
+      <h2>TECHNO VS EDM (HD)</h2>
+      <p>Selecciona tu leyenda Techno (salud aumentada), rompe cofres de vuelo y derroca a Steve Aoki en la discoteca.</p>
       
       <div class="char-select">
         <div class="char-card selected" id="card-ricardo">
@@ -59,7 +59,7 @@
           <span class="sub">Minimal Master</span>
           <div class="stats">
             • Pelo largo negro<br>
-            • Vel: ★★★☆☆ | Fza: ★★★☆☆<br>
+            • Salud: 180 HP (Alta)<br>
             • Especial: Minimal Loop
           </div>
         </div>
@@ -68,7 +68,7 @@
           <span class="sub">Plastik Precision</span>
           <div class="stats">
             • Rubia cabellera / Tupé<br>
-            • Vel: ★★★★☆ | Fza: ★★☆☆☆<br>
+            • Salud: 150 HP (Rápido)<br>
             • Especial: Sub-Bass Wave
           </div>
         </div>
@@ -77,7 +77,7 @@
           <span class="sub">Detroit Innovator</span>
           <div class="stats">
             • Pionero negro / Visor<br>
-            • Vel: ★★☆☆☆ | Fza: ★★★★★<br>
+            • Salud: 220 HP (Tanque)<br>
             • Especial: Hi-Tech Shift
           </div>
         </div>
@@ -89,7 +89,7 @@
     <!-- Game Over Screen -->
     <div id="gameover-screen" class="screen" style="display:none;">
       <h1 style="color:#ff0055;">GAME OVER</h1>
-      <p>El EDM comercial conquistó el club...</p>
+      <p>El EDM comercial conquistó la pista de baile...</p>
       <button class="btn" id="restart-btn-over">REINTENTAR</button>
     </div>
 
@@ -158,7 +158,7 @@
           osc.type = 'triangle';
           osc.frequency.setValueAtTime(500, t);
           osc.frequency.setValueAtTime(1000, t + 0.08);
-          gain.gain.setValueAtTime(0.2, t);
+          gain.gain.setValueAtTime(0.25, t);
           gain.gain.exponentialRampToValueAtTime(0.01, t + 0.2);
           osc.start(t); osc.stop(t + 0.2);
         }
@@ -211,254 +211,4 @@
       el.addEventListener('touchstart', function(e) { e.preventDefault(); initAudio(); keys[code] = true; });
       el.addEventListener('touchend', function(e) { e.preventDefault(); keys[code] = false; });
     }
-    setupTouch('btn-up', 'KeyW');
-    setupTouch('btn-down', 'KeyS');
-    setupTouch('btn-left', 'KeyA');
-    setupTouch('btn-right', 'KeyD');
-    setupTouch('btn-punch', 'KeyJ');
-    setupTouch('btn-kick', 'KeyK');
-    setupTouch('btn-special', 'KeyL');
-
-    function bindCharCard(id, key) {
-      var el = document.getElementById(id);
-      if (el) {
-        el.addEventListener('click', function() {
-          selectedCharKey = key;
-          var cards = document.querySelectorAll('.char-card');
-          for (var i=0; i<cards.length; i++) cards[i].classList.remove('selected');
-          this.classList.add('selected');
-        });
-      }
-    }
-    bindCharCard('card-ricardo', 'ricardo');
-    bindCharCard('card-richie', 'richie');
-    bindCharCard('card-derrick', 'derrick');
-
-    var CHAR_DATA = {
-      ricardo: { name: 'Ricardo', hp: 100, speed: 3.5, power: 12 },
-      richie:  { name: 'Richie',  hp: 90,  speed: 4.2, power: 10 },
-      derrick: { name: 'Derrick', hp: 120, speed: 2.8, power: 16 }
-    };
-
-    var player = null;
-    function Player(type) {
-      var data = CHAR_DATA[type];
-      this.type = type;
-      this.name = data.name;
-      this.x = 100; this.y = 340;
-      this.hp = data.hp; this.maxHp = data.hp;
-      this.speed = data.speed; this.power = data.power;
-      this.facing = 1; this.state = 'idle';
-      this.animTimer = 0; this.attackBox = null;
-    }
-
-    Player.prototype.update = function() {
-      if (this.state === 'hurt') {
-        this.animTimer++;
-        if (this.animTimer > 15) { this.state = 'idle'; this.animTimer = 0; }
-        return;
-      }
-      if (this.state === 'punch' || this.state === 'kick' || this.state === 'special') {
-        this.animTimer++;
-        if (this.animTimer > 12) { this.state = 'idle'; this.animTimer = 0; this.attackBox = null; }
-        return;
-      }
-
-      var dx = 0, dy = 0;
-      if (keys['KeyA'] || keys['ArrowLeft'])  { dx -= this.speed; this.facing = -1; }
-      if (keys['KeyD'] || keys['ArrowRight']) { dx += this.speed; this.facing = 1; }
-      if (keys['KeyW'] || keys['ArrowUp'])    { dy -= this.speed * 0.6; }
-      if (keys['KeyS'] || keys['ArrowDown'])  { dy += this.speed * 0.6; }
-
-      this.x = Math.max(30, Math.min(stageWidth - 30, this.x + dx));
-      this.y = Math.max(290, Math.min(420, this.y + dy));
-
-      if (this.x - cameraX > 500 && cameraX < stageWidth - 800) { cameraX = this.x - 500; }
-      else if (this.x - cameraX < 150 && cameraX > 0) { cameraX = this.x - 150; }
-
-      if (keys['KeyJ']) {
-        this.state = 'punch'; this.animTimer = 0; playSound('hit');
-        this.attackBox = { x: this.x + (this.facing * 35), y: this.y - 40, w: 40, h: 40, dmg: this.power };
-      } else if (keys['KeyK']) {
-        this.state = 'kick'; this.animTimer = 0; playSound('hit');
-        this.attackBox = { x: this.x + (this.facing * 45), y: this.y - 40, w: 50, h: 40, dmg: this.power * 1.3 };
-      } else if (keys['KeyL'] && this.hp > 5) {
-        this.state = 'special'; this.animTimer = 0; this.hp -= 2; playSound('special');
-        this.attackBox = { x: this.x - 70, y: this.y - 60, w: 140, h: 80, dmg: this.power * 2 };
-      }
-    };
-
-    Player.prototype.draw = function() {
-      if (!ctx) return;
-      ctx.save();
-      ctx.translate(this.x - cameraX, this.y);
-      ctx.fillStyle = 'rgba(0,0,0,0.4)';
-      ctx.beginPath(); ctx.ellipse(0, 0, 22, 8, 0, 0, Math.PI * 2); ctx.fill();
-      ctx.scale(this.facing, 1);
-
-      if (this.type === 'ricardo') {
-        ctx.fillStyle = '#1a1a2e'; ctx.fillRect(-12, -55, 24, 35);
-        ctx.fillStyle = '#22223b'; ctx.fillRect(-10, -20, 9, 20); ctx.fillRect(1, -20, 9, 20);
-        ctx.fillStyle = '#d4a373'; ctx.fillRect(-8, -72, 16, 17);
-        ctx.fillStyle = '#0a0a0a'; ctx.fillRect(-11, -76, 22, 12);
-        ctx.fillRect(-13, -68, 7, 28); ctx.fillRect(6, -68, 7, 28);
-        if (this.state === 'punch') { ctx.fillStyle = '#d4a373'; ctx.fillRect(10, -48, 22, 8); }
-        else if (this.state === 'kick') { ctx.fillStyle = '#22223b'; ctx.fillRect(8, -30, 26, 10); }
-        else if (this.state === 'special') { ctx.strokeStyle = '#00ffcc'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(0, -35, 45, 0, Math.PI*2); ctx.stroke(); }
-      } else if (this.type === 'richie') {
-        ctx.fillStyle = '#111'; ctx.fillRect(-10, -55, 20, 35);
-        ctx.fillStyle = '#050505'; ctx.fillRect(-9, -20, 8, 20); ctx.fillRect(1, -20, 8, 20);
-        ctx.fillStyle = '#e0a96d'; ctx.fillRect(-7, -70, 14, 15);
-        ctx.fillStyle = '#000'; ctx.fillRect(-6, -66, 12, 4);
-        ctx.fillStyle = '#f4d03f'; ctx.fillRect(-8, -77, 16, 9); ctx.fillRect(1, -83, 9, 8);
-        if (this.state === 'punch') { ctx.fillStyle = '#e0a96d'; ctx.fillRect(8, -48, 24, 7); }
-        else if (this.state === 'kick') { ctx.fillStyle = '#050505'; ctx.fillRect(6, -28, 28, 9); }
-        else if (this.state === 'special') { ctx.strokeStyle = '#ff0055'; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(0, -35, 50, 0, Math.PI*2); ctx.stroke(); }
-      } else if (this.type === 'derrick') {
-        ctx.fillStyle = '#3a5a40'; ctx.fillRect(-12, -55, 24, 35);
-        ctx.fillStyle = '#333'; ctx.fillRect(-10, -20, 9, 20); ctx.fillRect(1, -20, 9, 20);
-        ctx.fillStyle = '#5c3d2e'; ctx.fillRect(-8, -72, 16, 17);
-        ctx.fillStyle = '#111'; ctx.fillRect(-9, -75, 18, 7);
-        ctx.fillStyle = '#00ffcc'; ctx.fillRect(-7, -67, 14, 4);
-        if (this.state === 'punch') { ctx.fillStyle = '#5c3d2e'; ctx.fillRect(10, -50, 26, 10); }
-        else if (this.state === 'kick') { ctx.fillStyle = '#333'; ctx.fillRect(8, -32, 28, 12); }
-        else if (this.state === 'special') { ctx.strokeStyle = '#ffcc00'; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(0, -35, 55, 0, Math.PI*2); ctx.stroke(); }
-      }
-      ctx.restore();
-    };
-
-    var enemies = [], projectiles = [], chests = [], pickups = [];
-
-    function Enemy(x, y, type) {
-      this.x = x; this.y = y; this.type = type;
-      this.facing = -1; this.timer = 0;
-      if (type === 'grunt') { this.hp = 35; this.maxHp = 35; this.speed = 1.8; this.power = 6; }
-      else if (type === 'guetta') { this.hp = 55; this.maxHp = 55; this.speed = 1.5; this.power = 8; }
-      else if (type === 'boss') { this.hp = 280; this.maxHp = 280; this.speed = 2.1; this.power = 16; }
-    }
-
-    Enemy.prototype.update = function() {
-      if (this.hp <= 0) return;
-      var dist = Math.hypot(player.x - this.x, player.y - this.y);
-      this.facing = (player.x > this.x) ? 1 : -1;
-
-      if (dist > 55) {
-        this.x += this.facing * this.speed;
-        if (player.y > this.y) this.y += 0.5; else if (player.y < this.y) this.y -= 0.5;
-      } else {
-        this.timer++;
-        if (this.timer > (this.type === 'boss' ? 30 : 45)) {
-          this.timer = 0;
-          if (this.type === 'boss' || this.type === 'guetta') {
-            var pType = (this.type === 'boss') ? 'cake' : (Math.random() > 0.5 ? 'usb' : 'cdj');
-            projectiles.push(new Projectile(this.x, this.y - 45, this.facing, pType));
-          } else {
-            if (Math.abs(player.y - this.y) < 22) { player.hp -= this.power; player.state = 'hurt'; playSound('hit'); }
-          }
-        }
-      }
-    };
-
-    Enemy.prototype.draw = function() {
-      if (this.hp <= 0 || !ctx) return;
-      ctx.save();
-      ctx.translate(this.x - cameraX, this.y);
-      ctx.scale(this.facing, 1);
-      ctx.fillStyle = 'rgba(0,0,0,0.4)'; ctx.beginPath(); ctx.ellipse(0, 0, 20, 7, 0, 0, Math.PI*2); ctx.fill();
-
-      if (this.type === 'grunt') {
-        ctx.fillStyle = '#111'; ctx.fillRect(-10, -50, 20, 32);
-        ctx.fillStyle = '#e0a96d'; ctx.fillRect(-7, -65, 14, 15);
-        ctx.fillStyle = '#000'; ctx.fillRect(-6, -62, 12, 4);
-      } else if (this.type === 'guetta') {
-        ctx.fillStyle = '#457b9d'; ctx.fillRect(-11, -52, 22, 34);
-        ctx.fillStyle = '#f1faee'; ctx.fillRect(-7, -67, 14, 15);
-        ctx.fillStyle = '#e9c46a'; ctx.fillRect(-8, -73, 16, 7);
-      } else if (this.type === 'boss') {
-        ctx.scale(1.25, 1.25);
-        ctx.fillStyle = '#e63946'; ctx.fillRect(-12, -55, 24, 38);
-        ctx.fillStyle = '#d4a373'; ctx.fillRect(-8, -72, 16, 17);
-        ctx.fillStyle = '#1a0f07'; ctx.fillRect(-13, -76, 26, 9);
-        ctx.fillRect(-14, -68, 6, 32); ctx.fillRect(8, -68, 6, 32); ctx.fillRect(-7, -58, 14, 6);
-      }
-
-      ctx.scale(this.facing, 1);
-      ctx.fillStyle = '#333'; ctx.fillRect(-22, -85, 44, 5);
-      ctx.fillStyle = this.type === 'boss' ? '#ffcc00' : '#ff0055'; 
-      ctx.fillRect(-22, -85, (this.hp / this.maxHp) * 44, 5);
-      ctx.restore();
-    };
-
-    function Projectile(x, y, dir, type) {
-      this.x = x; this.y = y; this.dir = dir; this.type = type;
-      this.speed = 6.5; this.active = true;
-    }
-
-    Projectile.prototype.update = function() {
-      this.x += this.dir * this.speed;
-      if (Math.abs(this.x - player.x) < 25 && Math.abs(this.y - (player.y - 30)) < 30) {
-        player.hp -= (this.type === 'cake' ? 15 : 10);
-        player.state = 'hurt'; playSound('hit'); this.active = false;
-      }
-      if (Math.abs(this.x - player.x) > 650) this.active = false;
-    };
-
-    Projectile.prototype.draw = function() {
-      if (!this.active || !ctx) return;
-      ctx.save();
-      ctx.translate(this.x - cameraX, this.y);
-      if (this.type === 'cake') {
-        ctx.fillStyle = '#fff'; ctx.fillRect(-12, -12, 24, 16);
-        ctx.fillStyle = '#ff0055'; ctx.fillRect(-12, -6, 24, 5);
-        ctx.fillStyle = '#ffcc00'; ctx.fillRect(-2, -18, 4, 6);
-      } else if (this.type === 'usb') {
-        ctx.fillStyle = '#00ffcc'; ctx.fillRect(-8, -4, 16, 8);
-      } else if (this.type === 'cdj') {
-        ctx.fillStyle = '#222'; ctx.fillRect(-14, -10, 28, 20);
-        ctx.fillStyle = '#00ffcc'; ctx.beginPath(); ctx.arc(0, 0, 6, 0, Math.PI*2); ctx.fill();
-      }
-      ctx.restore();
-    };
-
-    function TreasureChest(x, y) {
-      this.x = x; this.y = y; this.broken = false;
-    }
-
-    TreasureChest.prototype.draw = function() {
-      if (!ctx) return;
-      ctx.save();
-      ctx.translate(this.x - cameraX, this.y);
-      if (!this.broken) {
-        ctx.fillStyle = '#2b2d42'; ctx.fillRect(-22, -30, 44, 30);
-        ctx.fillStyle = '#8d99ae';
-        ctx.fillRect(-22, -30, 44, 5); ctx.fillRect(-22, -5, 44, 5);
-        ctx.fillRect(-22, -30, 5, 30); ctx.fillRect(17, -30, 5, 30);
-        ctx.fillStyle = '#ffcc00'; ctx.fillRect(-5, -18, 10, 8);
-      } else {
-        ctx.fillStyle = '#1b1c28'; ctx.fillRect(-22, -15, 44, 15);
-        ctx.fillStyle = '#8d99ae'; ctx.fillRect(-24, -24, 48, 6);
-      }
-      ctx.restore();
-    };
-
-    function PickupItem(x, y, type) {
-      this.x = x; this.y = y; this.type = type; this.active = true;
-    }
-
-    PickupItem.prototype.update = function() {
-      if (Math.hypot(player.x - this.x, player.y - this.y) < 32) {
-        player.hp = Math.min(player.maxHp, player.hp + (this.type === 'drink' ? 35 : 20));
-        playSound('pickup'); this.active = false;
-      }
-    };
-
-    PickupItem.prototype.draw = function() {
-      if (!this.active || !ctx) return;
-      ctx.save();
-      ctx.translate(this.x - cameraX, this.y - 12);
-      if (this.type === 'headphones') {
-        ctx.strokeStyle = '#00ffcc'; ctx.lineWidth = 3;
-        ctx.beginPath(); ctx.arc(0, 0, 11, Math.PI, 0); ctx.stroke();
-        ctx.fillStyle = '#111'; ctx.fillRect(-14, -2, 6, 11); ctx.fillRect(8, -2, 6, 11);
-      } else {
-        ctx
+    setupTouch('btn-up', '
