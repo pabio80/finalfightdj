@@ -57,18 +57,19 @@
       var bgmInterval = null;
 
       function initAudio() {
-        if (!audioCtx) {
-          try {
-            var AudioCtx = window.AudioContext || window.webkitAudioContext;
-            if (AudioCtx) audioCtx = new AudioCtx();
-          } catch(e){}
-        }
-        if (audioCtx && audioCtx.state === 'suspended') {
-          try { audioCtx.resume(); } catch(e){}
-        }
+        try {
+          var AudioCtx = window.AudioContext || window.webkitAudioContext;
+          if (AudioCtx) {
+            if (!audioCtx) audioCtx = new AudioCtx();
+            if (audioCtx.state === 'suspended') {
+              audioCtx.resume();
+            }
+          }
+        } catch(e){}
       }
 
       function playSound(type) {
+        initAudio();
         if (!audioCtx) return;
         try {
           var osc = audioCtx.createOscillator();
@@ -102,6 +103,7 @@
       }
 
       function startMusic() {
+        initAudio();
         if (bgmInterval || !audioCtx) return;
         var notes = [110, 110, 220, 110, 146.83, 110, 130.81, 110];
         var step = 0;
@@ -110,15 +112,22 @@
           try {
             var osc = audioCtx.createOscillator();
             var gain = audioCtx.createGain();
-            osc.type = 'square';
-            osc.frequency.value = notes[step % notes.length];
-            gain.gain.setValueAtTime(0.03, audioCtx.currentTime);
+            // Si estamos en la zona del jefe final, cambiamos el sonido a modo Boss EDM frenético
+            if (player && player.x > 2800) {
+              osc.type = 'sawtooth';
+              osc.frequency.value = (step % 2 === 0) ? 220 : 440;
+              gain.gain.setValueAtTime(0.04, audioCtx.currentTime);
+            } else {
+              osc.type = 'square';
+              osc.frequency.value = notes[step % notes.length];
+              gain.gain.setValueAtTime(0.03, audioCtx.currentTime);
+            }
             gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
             osc.connect(gain); gain.connect(audioCtx.destination);
             osc.start(audioCtx.currentTime); osc.stop(audioCtx.currentTime + 0.1);
             step++;
           } catch(e){}
-        }, 140);
+        }, 130);
       }
 
       function stopMusic() {
@@ -127,7 +136,7 @@
 
       var gameState = 'TITLE'; 
       var cameraX = 0;
-      var stageWidth = 2600;
+      var stageWidth = 3600; // Escenario mucho más largo y extendido
       var keys = {};
 
       var selectedIndex = 0;
@@ -190,7 +199,7 @@
         this.speed = 3.8; this.power = 25;
         this.facing = 1; this.state = 'idle';
         this.animTimer = 0; this.attackBox = null;
-        this.hasHit = false; // Control para hacer daño una sola vez por golpe
+        this.hasHit = false;
         this.invulnerableTimer = 0;
       }
 
@@ -425,19 +434,20 @@
         startMusic();
 
         player = new Player(selectedRosterData);
+        // Oleadas repartidas a lo largo de un mapa mucho más largo (el jefe final se sitúa al fondo en X: 3300)
         enemies = [
-          new Enemy(500, 340, 'grunt'),
-          new Enemy(780, 360, 'guetta'),
-          new Enemy(1150, 330, 'grunt'),
-          new Enemy(1500, 370, 'guetta'),
-          new Enemy(1900, 350, 'grunt'),
-          new Enemy(2300, 340, 'boss')
+          new Enemy(600, 340, 'grunt'),
+          new Enemy(1000, 360, 'guetta'),
+          new Enemy(1500, 330, 'grunt'),
+          new Enemy(2000, 370, 'guetta'),
+          new Enemy(2600, 350, 'grunt'),
+          new Enemy(3300, 340, 'boss')
         ];
 
         chests = [
-          new TreasureChest(650, 330),
-          new TreasureChest(1350, 360),
-          new TreasureChest(2050, 340)
+          new TreasureChest(800, 330),
+          new TreasureChest(1750, 360),
+          new TreasureChest(2800, 340)
         ];
 
         projectiles = [];
@@ -446,7 +456,6 @@
         gameState = 'PLAYING';
       }
 
-      // Sistema de clic ultrarrústico y seguro por tercios de pantalla para selección
       function handleScreenClick(clientX, clientWidth) {
         initAudio();
         if (gameState === 'TITLE') {
@@ -476,215 +485,4 @@
         e.preventDefault();
         var rect = canvas.getBoundingClientRect();
         if (e.changedTouches.length > 0) {
-          handleScreenClick(e.changedTouches[0].clientX - rect.left, rect.width);
-        }
-      }, { passive: false });
-
-      function update() {
-        if (gameState !== 'PLAYING') return;
-
-        player.update();
-
-        if (player.attackBox && !player.hasHit) {
-          var hitSomething = false;
-          enemies.forEach(function(e) {
-            if (e.hp > 0 && Math.abs(e.x - player.attackBox.x) < 55 && Math.abs(e.y - player.attackBox.y) < 40) {
-              e.hp -= player.attackBox.dmg;
-              e.knockback = player.facing * 8;
-              playSound('hit');
-              hitSomething = true;
-            }
-          });
-
-          chests.forEach(function(c) {
-            if (!c.broken && Math.abs(c.x - player.attackBox.x) < 55) {
-              c.broken = true;
-              playSound('hit');
-              pickups.push(new PickupItem(c.x, c.y, Math.random() > 0.5 ? 'drink' : 'headphones'));
-              hitSomething = true;
-            }
-          });
-
-          if (hitSomething) {
-            player.hasHit = true; // El golpe solo hace daño una vez por pulsación
-          }
-        }
-
-        enemies.forEach(function(e) { e.update(); });
-        projectiles.forEach(function(p) { p.update(); });
-        pickups.forEach(function(p) { p.update(); });
-
-        if (player.hp <= 0) {
-          gameState = 'GAMEOVER';
-          stopMusic();
-        }
-
-        var boss = null;
-        for(var i=0; i<enemies.length; i++) {
-          if (enemies[i].type === 'boss') { boss = enemies[i]; break; }
-        }
-        if (boss && boss.hp <= 0) {
-          gameState = 'VICTORY';
-          stopMusic();
-        }
-      }
-
-      function drawStageBackground() {
-        if (!ctx || !canvas) return;
-        ctx.fillStyle = '#1a1a2e'; ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        var time = Date.now() * 0.002;
-
-        ctx.strokeStyle = 'rgba(0, 255, 204, 0.45)'; ctx.lineWidth = 18;
-        ctx.beginPath(); ctx.moveTo(120 - cameraX * 0.2, 0); ctx.lineTo(Math.sin(time)*240 + 220 - cameraX * 0.2, 450); ctx.stroke();
-        ctx.strokeStyle = 'rgba(255, 0, 85, 0.45)';
-        ctx.beginPath(); ctx.moveTo(720 - cameraX * 0.2, 0); ctx.lineTo(Math.cos(time)*240 + 580 - cameraX * 0.2, 450); ctx.stroke();
-
-        ctx.fillStyle = '#e0e1dd'; ctx.beginPath(); ctx.arc(400 - cameraX * 0.1, 40, 22, 0, Math.PI*2); ctx.fill();
-        ctx.fillStyle = 'rgba(255,255,255,0.7)'; ctx.fillRect(398 - cameraX * 0.1, 0, 4, 40);
-
-        ctx.fillStyle = '#2b2b48'; ctx.fillRect(0, 270, canvas.width, 180);
-        ctx.strokeStyle = 'rgba(0, 255, 204, 0.25)'; ctx.lineWidth = 2;
-        for (var x = 0; x < stageWidth; x += 60) {
-          ctx.beginPath(); ctx.moveTo(x - cameraX, 270); ctx.lineTo(x - cameraX, 450); ctx.stroke();
-        }
-
-        ctx.fillStyle = '#3a3a5c'; ctx.fillRect(450 - cameraX * 0.5, 150, 280, 120);
-        ctx.fillStyle = '#00ffcc';
-        for (var i = 0; i < 12; i++) {
-          var h = Math.abs(Math.sin(time + i)) * 50 + 10;
-          ctx.fillRect(470 + (i * 20) - cameraX * 0.5, 250 - h, 14, h);
-        }
-      }
-
-      function drawHUD() {
-        if (!ctx || !player) return;
-        ctx.fillStyle = 'rgba(0,0,0,0.7)'; ctx.fillRect(15, 15, 260, 38);
-        ctx.fillStyle = '#444'; ctx.fillRect(20, 20, 250, 28);
-        ctx.fillStyle = player.hp > (player.maxHp * 0.3) ? '#00ffcc' : '#ff0055';
-        ctx.fillRect(20, 20, (player.hp / player.maxHp) * 250, 28);
-
-        ctx.fillStyle = '#fff'; ctx.font = 'bold 13px Courier New';
-        ctx.fillText(player.name.toUpperCase() + ' HP: ' + Math.max(0, Math.ceil(player.hp)) + ' / ' + player.maxHp, 25, 38);
-      }
-
-      function drawTitleScreen() {
-        ctx.fillStyle = 'rgba(10, 10, 18, 0.95)';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        ctx.textAlign = 'center';
-        ctx.fillStyle = '#00ffcc';
-        ctx.font = 'bold 36px Courier New';
-        ctx.fillText('DJ LEGENDS: TECHNO VS EDM', canvas.width / 2, 140);
-
-        ctx.fillStyle = '#ff0055';
-        ctx.font = 'bold 18px Courier New';
-        ctx.fillText('HAZ CLIC EN CUALQUIER PARTE PARA EMPEZAR', canvas.width / 2, 230);
-
-        ctx.fillStyle = '#888';
-        ctx.font = '13px Courier New';
-        ctx.fillText('Versión Underground 100% Autónoma', canvas.width / 2, 340);
-      }
-
-      function drawSelectScreen() {
-        ctx.fillStyle = 'rgba(10, 10, 18, 0.95)';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        ctx.textAlign = 'center';
-        ctx.fillStyle = '#00ffcc';
-        ctx.font = 'bold 28px Courier New';
-        ctx.fillText('SELECCIONA TU LEYENDA TECHNO', canvas.width / 2, 50);
-
-        var boxWidth = 200, boxHeight = 220;
-        var startX = (canvas.width - (roster.length * 220)) / 2;
-
-        for (var i = 0; i < roster.length; i++) {
-          var bx = startX + (i * 220);
-          var by = 100;
-
-          ctx.fillStyle = (i === selectedIndex) ? '#222533' : '#14141c';
-          ctx.strokeStyle = (i === selectedIndex) ? '#00ffcc' : '#444';
-          ctx.lineWidth = (i === selectedIndex) ? 4 : 2;
-          ctx.fillRect(bx, by, boxWidth, boxHeight);
-          ctx.strokeRect(bx, by, boxWidth, boxHeight);
-
-          ctx.fillStyle = roster[i].accent;
-          ctx.font = 'bold 16px Courier New';
-          ctx.fillText(roster[i].name, bx + boxWidth/2, by + 45);
-
-          ctx.fillStyle = '#aaa';
-          ctx.font = '12px Courier New';
-          ctx.fillText(roster[i].desc, bx + boxWidth/2, by + 85);
-
-          ctx.fillStyle = '#fff';
-          ctx.font = '11px Courier New';
-          ctx.fillText('Modo: Inmortal (999 HP)', bx + boxWidth/2, by + 170);
-        }
-
-        ctx.fillStyle = '#ff0055';
-        ctx.font = 'bold 14px Courier New';
-        ctx.fillText('IZQUIERDA/DERECHA para cambiar | CENTRO para SELECCIONAR', canvas.width / 2, 375);
-      }
-
-      function drawGameOverScreen() {
-        ctx.fillStyle = 'rgba(10, 10, 18, 0.95)';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.textAlign = 'center';
-        ctx.fillStyle = '#ff0055';
-        ctx.font = 'bold 40px Courier New';
-        ctx.fillText('GAME OVER', canvas.width / 2, 180);
-
-        ctx.fillStyle = '#fff';
-        ctx.font = '16px Courier New';
-        ctx.fillText('Haz clic para volver al menú principal', canvas.width / 2, 260);
-      }
-
-      function drawVictoryScreen() {
-        ctx.fillStyle = 'rgba(10, 10, 18, 0.95)';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.textAlign = 'center';
-        ctx.fillStyle = '#00ffcc';
-        ctx.font = 'bold 40px Courier New';
-        ctx.fillText('VICTORIA UNDERGROUND', canvas.width / 2, 180);
-
-        ctx.fillStyle = '#fff';
-        ctx.font = '16px Courier New';
-        ctx.fillText('¡Has derrotado al EDM! Haz clic para jugar de nuevo', canvas.width / 2, 260);
-      }
-
-      function render() {
-        try {
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-          
-          if (gameState === 'TITLE') {
-            drawStageBackground();
-            drawTitleScreen();
-          } else if (gameState === 'SELECT') {
-            drawSelectScreen();
-          } else if (gameState === 'PLAYING') {
-            update();
-            drawStageBackground();
-
-            chests.forEach(function(c) { c.draw(); });
-            pickups.forEach(function(p) { p.draw(); });
-            enemies.forEach(function(e) { e.draw(); });
-            if (player) player.draw();
-            projectiles.forEach(function(p) { p.draw(); });
-
-            drawHUD();
-          } else if (gameState === 'GAMEOVER') {
-            drawGameOverScreen();
-          } else if (gameState === 'VICTORY') {
-            drawVictoryScreen();
-          }
-        } catch (err) {
-          console.error("Error en render:", err);
-        }
-        requestAnimationFrame(render);
-      }
-
-      render();
-    });
-  </script>
-</body>
-</html>
+          handleScreenClick(e.changedTouches[0].
