@@ -64,6 +64,12 @@
       { name: 'Richie Hawtin', color: '#212529', accent: '#ffcc00', desc: 'Acid Overlord' }
     ];
 
+    var player = null;
+    var enemies = [];
+    var projectiles = [];
+    var chests = [];
+    var pickups = [];
+
     function initAudio() {
       try {
         var AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -141,7 +147,6 @@
       if (bgmInterval) { clearInterval(bgmInterval); bgmInterval = null; }
     }
 
-    var player = null;
     function Player(data) {
       this.name = data.name;
       this.color = data.color;
@@ -224,8 +229,6 @@
       ctx.restore();
     };
 
-    var enemies = [], projectiles = [], chests = [], pickups = [];
-
     function Enemy(x, y, type) {
       this.x = x; this.y = y; this.type = type;
       this.facing = -1; this.timer = 0; this.knockback = 0;
@@ -235,7 +238,7 @@
     }
 
     Enemy.prototype.update = function() {
-      if (this.hp <= 0) return;
+      if (this.hp <= 0 || !player) return;
       if (this.knockback !== 0) {
         this.x += this.knockback;
         this.knockback *= 0.8;
@@ -306,6 +309,7 @@
     }
 
     Projectile.prototype.update = function() {
+      if (!player) return;
       this.x += this.dir * this.speed;
       if (Math.abs(this.x - player.x) < 25 && Math.abs(this.y - (player.y - 30)) < 30 && player.invulnerableTimer === 0) {
         player.hp -= (this.type === 'cake' ? 10 : 6);
@@ -360,6 +364,7 @@
     }
 
     PickupItem.prototype.update = function() {
+      if (!player) return;
       if (Math.hypot(player.x - this.x, player.y - this.y) < 40) {
         player.hp = Math.min(player.maxHp, player.hp + 200);
         playSound('pickup'); this.active = false;
@@ -428,7 +433,7 @@
     }
 
     function update() {
-      if (gameState !== 'PLAYING') return;
+      if (gameState !== 'PLAYING' || !player) return;
 
       player.update();
 
