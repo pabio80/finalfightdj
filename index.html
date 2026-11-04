@@ -47,21 +47,30 @@
   </div>
 
   <script>
-    window.addEventListener('load', function() {
-      var canvas = document.getElementById('gameCanvas');
-      if (!canvas) return;
-      var ctx = canvas.getContext('2d');
-      if (!ctx) return;
-
+    (function() {
+      var canvas, ctx;
       var audioCtx = null;
       var bgmInterval = null;
+      var gameState = 'TITLE';
+      var cameraX = 0;
+      var stageWidth = 3600;
+      var keys = {};
+
+      var selectedIndex = 0;
+      var roster = [
+        { name: 'Ricardo Villalobos', color: '#2b2b48', accent: '#00ffcc', desc: 'Minimal Groove' },
+        { name: 'Derrick May', color: '#1b3a4b', accent: '#ff0055', desc: 'Detroit Techno' },
+        { name: 'Richie Hawtin', color: '#212529', accent: '#ffcc00', desc: 'Acid Overlord' }
+      ];
 
       function initAudio() {
         try {
           var AudioCtx = window.AudioContext || window.webkitAudioContext;
-          if (AudioCtx) {
-            if (!audioCtx) audioCtx = new AudioCtx();
-            if (audioCtx.state === 'suspended') audioCtx.resume();
+          if (AudioCtx && !audioCtx) {
+            audioCtx = new AudioCtx();
+          }
+          if (audioCtx && audioCtx.state === 'suspended') {
+            audioCtx.resume();
           }
         } catch(e){}
       }
@@ -131,61 +140,6 @@
         if (bgmInterval) { clearInterval(bgmInterval); bgmInterval = null; }
       }
 
-      var gameState = 'TITLE'; 
-      var cameraX = 0;
-      var stageWidth = 3600;
-      var keys = {};
-
-      var selectedIndex = 0;
-      var roster = [
-        { name: 'Ricardo Villalobos', color: '#2b2b48', accent: '#00ffcc', desc: 'Minimal Groove' },
-        { name: 'Derrick May', color: '#1b3a4b', accent: '#ff0055', desc: 'Detroit Techno' },
-        { name: 'Richie Hawtin', color: '#212529', accent: '#ffcc00', desc: 'Acid Overlord' }
-      ];
-
-      window.addEventListener('keydown', function(e) {
-        initAudio();
-        keys[e.code] = true;
-
-        if (gameState === 'TITLE') {
-          if (e.code === 'Enter' || e.code === 'Space' || e.code === 'KeyJ') {
-            gameState = 'SELECT';
-          }
-        } else if (gameState === 'SELECT') {
-          if (e.code === 'ArrowLeft' || e.code === 'KeyA') {
-            selectedIndex = (selectedIndex - 1 + roster.length) % roster.length;
-            playSound('pickup');
-          } else if (e.code === 'ArrowRight' || e.code === 'KeyD') {
-            selectedIndex = (selectedIndex + 1) % roster.length;
-            playSound('pickup');
-          } else if (e.code === 'Enter' || e.code === 'Space' || e.code === 'KeyJ') {
-            startActualGame(roster[selectedIndex]);
-          }
-        }
-      });
-
-      window.addEventListener('keyup', function(e) { keys[e.code] = false; });
-
-      var isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
-      if (isTouchDevice) {
-        var tc = document.getElementById('touch-controls');
-        if (tc) tc.style.display = 'block';
-      }
-
-      function setupTouch(id, code) {
-        var el = document.getElementById(id);
-        if (!el) return;
-        el.addEventListener('touchstart', function(e) { e.preventDefault(); initAudio(); keys[code] = true; });
-        el.addEventListener('touchend', function(e) { e.preventDefault(); keys[code] = false; });
-      }
-      setupTouch('btn-up', 'KeyW');
-      setupTouch('btn-down', 'KeyS');
-      setupTouch('btn-left', 'KeyA');
-      setupTouch('btn-right', 'KeyD');
-      setupTouch('btn-punch', 'KeyJ');
-      setupTouch('btn-kick', 'KeyK');
-      setupTouch('btn-special', 'KeyL');
-
       var player = null;
       function Player(data) {
         this.name = data.name;
@@ -205,44 +159,4 @@
 
         if (this.state === 'hurt') {
           this.animTimer++;
-          if (this.animTimer > 12) { this.state = 'idle'; this.animTimer = 0; }
-          return;
-        }
-        if (this.state === 'punch' || this.state === 'kick' || this.state === 'special') {
-          this.animTimer++;
-          if (this.animTimer > 16) { this.state = 'idle'; this.animTimer = 0; this.attackBox = null; this.hasHit = false; }
-          return;
-        }
-
-        var dx = 0, dy = 0;
-        if (keys['KeyA'] || keys['ArrowLeft'])  { dx -= this.speed; this.facing = -1; }
-        if (keys['KeyD'] || keys['ArrowRight']) { dx += this.speed; this.facing = 1; }
-        if (keys['KeyW'] || keys['ArrowUp'])    { dy -= this.speed * 0.6; }
-        if (keys['KeyS'] || keys['ArrowDown'])  { dy += this.speed * 0.6; }
-
-        this.x = Math.max(30, Math.min(stageWidth - 30, this.x + dx));
-        this.y = Math.max(290, Math.min(420, this.y + dy));
-
-        if (this.x - cameraX > 500 && cameraX < stageWidth - 800) { cameraX = this.x - 500; }
-        else if (this.x - cameraX < 150 && cameraX > 0) { cameraX = this.x - 150; }
-
-        if (keys['KeyJ']) {
-          this.state = 'punch'; this.animTimer = 0; this.hasHit = false; playSound('hit');
-          this.attackBox = { x: this.x + (this.facing * 50), y: this.y - 45, w: 65, h: 45, dmg: this.power };
-        } else if (keys['KeyK']) {
-          this.state = 'kick'; this.animTimer = 0; this.hasHit = false; playSound('hit');
-          this.attackBox = { x: this.x + (this.facing * 60), y: this.y - 35, w: 75, h: 45, dmg: this.power * 1.5 };
-        } else if (keys['KeyL']) {
-          this.state = 'special'; this.animTimer = 0; this.hasHit = false; playSound('special');
-          this.attackBox = { x: this.x - 100, y: this.y - 70, w: 200, h: 100, dmg: this.power * 3 };
-        }
-      };
-
-      Player.prototype.draw = function() {
-        if (!ctx) return;
-        if (this.invulnerableTimer > 0 && Math.floor(this.invulnerableTimer / 3) % 2 === 0) return;
-
-        ctx.save();
-        ctx.translate(this.x - cameraX, this.y);
-        ctx.fillStyle = 'rgba(0,0,0,0.45)';
-        ctx.beginPath(); ctx.ellipse(0, 0, 24, 9, 0, 0, Math.PI * 2); ctx.fill();
+          if (this.animTimer >
