@@ -190,13 +190,13 @@
 
       if (keys['KeyJ']) {
         this.state = 'punch'; this.animTimer = 0; this.hasHit = false; playSound('hit');
-        this.attackBox = { x: this.x + (this.facing * 50), y: this.y - 45, w: 65, h: 45, dmg: this.power };
+        this.attackBox = { x: this.x + (this.facing * 55), y: this.y - 50, w: 75, h: 60, dmg: this.power };
       } else if (keys['KeyK']) {
         this.state = 'kick'; this.animTimer = 0; this.hasHit = false; playSound('hit');
-        this.attackBox = { x: this.x + (this.facing * 60), y: this.y - 35, w: 75, h: 45, dmg: this.power * 1.5 };
+        this.attackBox = { x: this.x + (this.facing * 65), y: this.y - 40, w: 85, h: 60, dmg: this.power * 1.5 };
       } else if (keys['KeyL']) {
         this.state = 'special'; this.animTimer = 0; this.hasHit = false; playSound('special');
-        this.attackBox = { x: this.x - 100, y: this.y - 70, w: 200, h: 100, dmg: this.power * 3 };
+        this.attackBox = { x: this.x - 120, y: this.y - 80, w: 240, h: 120, dmg: this.power * 3 };
       }
     };
 
@@ -442,16 +442,30 @@
       if (player.attackBox && !player.hasHit) {
         var hitSomething = false;
         enemies.forEach(function(e) {
-          if (e.hp > 0 && Math.abs(e.x - player.attackBox.x) < 55 && Math.abs(e.y - player.attackBox.y) < 40) {
-            e.hp -= player.attackBox.dmg;
-            e.knockback = player.facing * 8;
-            playSound('hit');
-            hitSomething = true;
+          if (e.hp > 0) {
+            // Colisión AABB ampliada para asegurar impacto de puñetazos, patadas y especiales
+            var box = player.attackBox;
+            var enemyLeft = e.x - 25;
+            var enemyRight = e.x + 25;
+            var enemyTop = e.y - 60;
+            var enemyBottom = e.y;
+
+            if (
+              box.x < enemyRight &&
+              box.x + box.w > enemyLeft &&
+              box.y < enemyBottom &&
+              box.y + box.h > enemyTop
+            ) {
+              e.hp -= box.dmg;
+              e.knockback = player.facing * 8;
+              playSound('hit');
+              hitSomething = true;
+            }
           }
         });
 
         chests.forEach(function(c) {
-          if (!c.broken && Math.abs(c.x - player.attackBox.x) < 55) {
+          if (!c.broken && Math.abs(c.x - player.attackBox.x) < 60) {
             c.broken = true;
             playSound('hit');
             pickups.push(new PickupItem(c.x, c.y, Math.random() > 0.5 ? 'drink' : 'headphones'));
@@ -650,7 +664,6 @@
       requestAnimationFrame(render);
     }
 
-    // Controles de teclado y táctiles directos
     window.addEventListener('keydown', function(e) {
       initAudio();
       keys[e.code] = true;
@@ -707,7 +720,6 @@
       }
     }, { passive: false });
 
-    // Arrancar bucle de inmediato
     render();
   </script>
 </body>
